@@ -1,10 +1,13 @@
 package main
 
 import (
+	"back_end/fds_core/database"
+	routes "back_end/routes"
 	"fmt"
 	"log"
+	"os"
 
-	"back_end/fds_core/database"
+	"github.com/gin-gonic/gin"
 )
 
 // func gracefulShutdown(apiServer *http.Server, done chan bool) {
@@ -45,4 +48,26 @@ func main() {
         fmt.Println("Connect Unsuccessful")
         log.Fatal("Database is not healthy")
     }
+
+	port := os.Getenv("PORT")
+
+	if port == ""{
+		port="8000"
+	}
+
+	router := gin.New()
+	router.Use(gin.Logger())
+
+	routes.AuthRoutes(router)
+	routes.UserRoutes(router)
+
+	router.GET("/api-1", func(c *gin.Context){
+		c.JSON(200, gin.H{"success":"Access granted for api-1"})
+	})
+
+	router. GET("/api-2", func(c *gin.Context){
+		c.JSON(200, gin.H{"success":"Access granted for api-2"})
+	})
+
+	router.RUN(":" + port)
 }
