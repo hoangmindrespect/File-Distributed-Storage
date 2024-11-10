@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
-	"back_end/internal/database"
+	"back_end/fds_core/database"
 )
 
 type Server struct {
