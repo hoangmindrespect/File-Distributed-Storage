@@ -37,17 +37,7 @@ import (
 func main() {
 
 	// Init connection with our MongoDB
-    dbService := database.New()
-
-    // Check status of connection
-    healthStatus := dbService.Health()
-
-    if healthStatus["message"] == "It's healthy" {
-        fmt.Println("Connect Success")
-    } else {
-        fmt.Println("Connect Unsuccessful")
-        log.Fatal("Database is not healthy")
-    }
+    database.ConnectToMongoDB()
 
 	port := os.Getenv("PORT")
 
