@@ -1,12 +1,12 @@
 package routes
 
-import (
-	controller "back_end/controllers"
+// import (
+// 	controller "back_end/controllers"
 
-	"github.com/gin-gonic/gin"
-)
-	
-	func AuthRoutes(incomingRoutes *gin.Engine) {
-		incomingRoutes.POST("users/signup", controller.Signup())
-		incomingRoutes.POST("users/login", controller.Login())
-	}
+// 	"github.com/gin-gonic/gin"
+// )
+
+// 	func AuthRoutes(incomingRoutes *gin.Engine) {
+// 		incomingRoutes.POST("users/signup", controller.Signup())
+// 		incomingRoutes.POST("users/login", controller.Login())
+// 	}
