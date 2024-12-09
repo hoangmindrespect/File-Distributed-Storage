@@ -10,34 +10,37 @@ import (
 
 var SECRET_KEY string = os.Getenv("SECRET_KEY")
 
-type Claims struct {
-	UserID string `json:"user_id"`
-	jwt.StandardClaims
-}
-
-// GenerateJWT generates a new JWT token
+// Tạo JWT token
 func GenerateJWT(userID string) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
-		UserID: userID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
+    claims := jwt.MapClaims{}
+    claims["user_id"] = userID
+    claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(SECRET_KEY)
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString([]byte(SECRET_KEY)) // Đảm bảo SECRET_KEY đã được cấu hình
 }
 
-// ValidateToken validates a JWT token
-func ValidateToken(tokenStr string) (*Claims, error) {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return SECRET_KEY, nil
-	})
+// Xác thực JWT token
+func ValidateJWT(token string) (string, error) {
+    //Bỏ bearer
+    if len(token) > 7 && token[:7] == "Bearer " {
+        token = token[7:]
+    }
 
-	if err != nil || !token.Valid {
-		return nil, errors.New("invalid token")
-	}
-	return claims, nil
+    // Parse và xác thực JWT token
+    claims := jwt.MapClaims{}
+    parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+        return []byte(SECRET_KEY), nil
+    })
+    if err != nil || !parsedToken.Valid {
+        return "", errors.New("invalid token")
+    }
+
+    // Trả về user_id từ claims
+    userID, ok := claims["user_id"].(string)
+    if !ok {
+        return "", errors.New("user_id not found in token")
+    }
+
+    return userID, nil
 }

@@ -1,110 +1,37 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	controller "back_end/controllers"
-
-	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	database "back_end/database"
 )
 
-var userCollection *mongo.Collection
-
 func init() {
-	// Kết nối MongoDB
-	godotenv.Load()
-	mongo_uri := os.Getenv("MONGODB_URI")
-	clientOptions := options.Client().ApplyURI(mongo_uri)
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-	if err != nil {
-		log.Fatal(err)
+	// connect to FDS
+	if err := database.ConnectToFDS(); err != nil {
+		log.Fatalf("Failed to connect to FDS: %v", err)
 	}
+	fmt.Println("Successfully connected to FDS!")
 
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		log.Fatal(err)
+	// Connect to all nodes
+	if err := database.ConnectToNodes(database.NodeURIs); err != nil {
+		log.Fatalf("Failed to connect to nodes: %v", err)
 	}
-
-	userCollection = client.Database("FDS").Collection("user") // Đặt tên database phù hợp
-	fmt.Println("Connected to MongoDB!")
-}
+	fmt.Println("Successfully connected to all nodes!")}
 
 func main() {
-	http.HandleFunc("/signup", SignupHandler)
-	http.HandleFunc("/signin", SigninHandler)
-	http.HandleFunc("/getuser", GetUserHandler)
-	http.HandleFunc("/getusers", GetUsersHandler)
+	http.HandleFunc("/register", controller.RegisterHandler)
+	http.HandleFunc("/login", controller.LoginHandler)
+	// http.HandleFunc("/getuser", controller.GetUserHandler)
+	// http.HandleFunc("/getusers", controller.GetAllUsersHandler)
+	http.HandleFunc("/currentuser", controller.CurrentUserHandler)
 
+	// Định nghĩa route handlers
+	http.HandleFunc("/upload", controller.UploadFileHandler)
+	http.HandleFunc("/download", controller.DownloadFileHandler)
 	fmt.Println("Server is running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-// Signup Handler
-func SignupHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	json.NewDecoder(r.Body).Decode(&req)
-	token, refreshToken, err := controller.Signup(context.Background(), userCollection, req.Email, req.Password)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	resp := map[string]string{
-		"token":         token,
-		"refresh_token": refreshToken,
-	}
-	json.NewEncoder(w).Encode(resp)
-}
-
-// Signin Handler
-func SigninHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	json.NewDecoder(r.Body).Decode(&req)
-	token, refreshToken, err := controller.Signin(context.Background(), userCollection, req.Email, req.Password)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	resp := map[string]string{
-		"token":         token,
-		"refresh_token": refreshToken,
-	}
-	json.NewEncoder(w).Encode(resp)
-}
-
-// GetUser Handler
-func GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("user_id")
-	user, err := controller.GetUser(context.Background(), userCollection, userID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(user)
-}
-
-// GetUsers Handler
-func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	users, err := controller.GetUsers(context.Background(), userCollection)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(users)
 }
