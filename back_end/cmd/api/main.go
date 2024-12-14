@@ -33,6 +33,7 @@ func main() {
 	http.HandleFunc("/upload", controller.UploadFileHandler)
 	http.HandleFunc("/download", controller.DownloadFileHandler)
 	http.HandleFunc("/delete", controller.DeleteFileHandler)
+	http.HandleFunc("/rename", controller.RenameFileHandler)
 
 	fmt.Println("Server is running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

@@ -169,12 +169,10 @@ func DownloadFile(fileName string) error {
 		return fmt.Errorf("file not found on any node")
 	}
 
-	// Sắp xếp chunks theo thứ tự `chunk_index`
 	sort.Slice(chunks, func(i, j int) bool {
 		return chunks[i]["chunk_index"].(int32) < chunks[j]["chunk_index"].(int32)
 	})
 
-	// Lấy đường dẫn đến thư mục Downloads ở máy mình
 	downloadsPath := filepath.Join(os.Getenv("USERPROFILE"), "Downloads")
 	localFilePath := filepath.Join(downloadsPath, fileName)
 
@@ -184,7 +182,6 @@ func DownloadFile(fileName string) error {
 	}
 	defer file.Close()
 
-	// Ghép các chunk và ghi vào file local
 	for _, chunk := range chunks {
 		data := chunk["data"].(primitive.Binary).Data
 		_, err := file.Write(data)
@@ -194,5 +191,48 @@ func DownloadFile(fileName string) error {
 	}
 
 	fmt.Printf("File downloaded successfully to %s\n", localFilePath)
+	return nil
+}
+
+func RenameFile(fileID string, newFileName string) error {
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
+
+	// Tìm metadata file để lấy thông tin extension
+	var fileMetadata bson.M
+	err := CoreDatabase.FindOne(context.Background(), bson.M{"file_id": fileID}).Decode(&fileMetadata)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve file metadata: %w", err)
+	}
+
+	fileName := fileMetadata["file_name"].(string)
+	extension := filepath.Ext(fileName)
+
+	// Tạo tên file mới với extension
+	newFileNameWithExt := newFileName + extension
+
+	// Cập nhật tên file trong collection metadata
+	_, err = CoreDatabase.UpdateOne(
+		context.Background(),
+		bson.M{"file_id": fileID},
+		bson.M{"$set": bson.M{"file_name": newFileNameWithExt}},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update file name in metadata: %w", err)
+	}
+
+	// Cập nhật từng chunk trên các node
+	for _, node := range database.LiveNodes {
+		Datacollection := node.Database("Data").Collection("chunks")
+
+		_, err := Datacollection.UpdateMany(
+			context.Background(),
+			bson.M{"file_id": fileID},
+			bson.M{"$set": bson.M{"file_name": newFileNameWithExt}},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to update chunks on node %v: %w", node, err)
+		}
+	}
+
 	return nil
 }

@@ -75,3 +75,30 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		"message": fmt.Sprintf("File %s downloaded successfully", fileName),
 	})
 }
+
+
+func RenameFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fileID := r.URL.Query().Get("file_id")
+	newFileName := r.URL.Query().Get("new_file_name")
+
+	if fileID == "" || newFileName == "" {
+		http.Error(w, "file_id and new_file_name are required", http.StatusBadRequest)
+		return
+	}
+
+	err := services.RenameFile(fileID, newFileName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "File renamed successfully",
+	})
+}
