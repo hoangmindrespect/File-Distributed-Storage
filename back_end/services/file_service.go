@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 
@@ -22,6 +24,11 @@ func UploadFile(filePath string) error {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
+
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to load stat file: %w", err)
+	}
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {
@@ -38,8 +45,38 @@ func UploadFile(filePath string) error {
 	if totalFileSize%numberOfNodes != 0 {
 		chunkSize++ 
 	}
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
 
-	fileName := file.Name()
+	fileName := filepath.Base(filePath)
+	fileExtension := filepath.Ext(filePath)
+	fileSize := fileInfo.Size()
+
+	// Save file's properties to FDS
+	result, err := CoreDatabase.InsertOne(context.Background(), bson.M{
+		"file_name":   fileName,
+		"file_type":   fileExtension,
+		"file_size":   fileSize,
+		"upload_time": time.Now(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to insert: %w", err)
+	}
+
+	insertedID, ok := result.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return fmt.Errorf("failed to cast InsertedID to ObjectID")
+	}
+
+	fileID := insertedID.Hex()
+
+	_, err = CoreDatabase.UpdateOne(
+		context.Background(),
+		bson.M{"_id": insertedID}, 
+		bson.M{"$set": bson.M{"file_id": fileID}}, 
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update file_id: %w", err)
+	}
 
 	// Chia file thành các chunk và lưu vào các node, bao nhiu node bấy nhiu chunk
 	for i := 0; i < numberOfNodes; i++ {
@@ -52,19 +89,56 @@ func UploadFile(filePath string) error {
 		chunkData := fileData[startIndex:endIndex]
 
 		nodeIndex := i
-		collection := database.LiveNodes[nodeIndex].Database("Data").Collection("chunks")
-
-		_, err := collection.InsertOne(context.Background(), bson.M{
+		Datacollection := database.LiveNodes[nodeIndex].Database("Data").Collection("chunks")
+		
+		// Save data to nodes
+		_, err := Datacollection.InsertOne(context.Background(), bson.M{
 			"file_name":  fileName,
 			"chunk_index": i,
 			"data":        chunkData,
 			"upload_time": time.Now(),
+			"file_id": fileID,
+			
 		})
 		if err != nil {
 			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
 		}
 	}
 
+	return nil
+
+}
+
+func DeleteFile(fileID string) error {
+	// Kết nối tới collection lưu metadata file
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
+
+	// Tìm file metadata theo `file_id`
+	var fileMetadata bson.M
+	err := CoreDatabase.FindOne(context.Background(), bson.M{"file_id": fileID}).Decode(&fileMetadata)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return fmt.Errorf("file with ID %s not found", fileID)
+		}
+		return fmt.Errorf("failed to retrieve file metadata: %w", err)
+	}
+
+	// Xóa tất cả các chunk liên quan trong LiveNodes
+	for _, node := range database.LiveNodes {
+		Datacollection := node.Database("Data").Collection("chunks")
+		_, err := Datacollection.DeleteMany(context.Background(), bson.M{"file_id": fileID})
+		if err != nil {
+			return fmt.Errorf("failed to delete chunks for file %s: %w", fileID, err)
+		}
+	}
+
+	// Xóa metadata file khỏi FDS
+	_, err = CoreDatabase.DeleteOne(context.Background(), bson.M{"file_id": fileID})
+	if err != nil {
+		return fmt.Errorf("failed to delete file metadata: %w", err)
+	}
+
+	fmt.Printf("File %s and its chunks deleted successfully\n", fileID)
 	return nil
 }
 

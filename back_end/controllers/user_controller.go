@@ -20,7 +20,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Đăng ký người dùng
     if err := services.RegisterUser(&user); err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
