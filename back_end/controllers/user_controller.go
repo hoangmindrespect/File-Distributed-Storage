@@ -8,6 +8,11 @@ import (
 	"net/http"
 )
 
+type AuthResponse struct {
+    Message string `json:"message"`
+    Token   string `json:"token"`
+}
+
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodPost {
         http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -48,8 +53,17 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    response := AuthResponse{
+        Message: "Login successful",
+        Token:   token,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+
     w.WriteHeader(http.StatusOK)
-    w.Write([]byte(fmt.Sprintf(`{"message":"Login successful","token":"%s"}`, token)))
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+    }
 }
 
 // func GetUserHandler(w http.ResponseWriter, r *http.Request) {
