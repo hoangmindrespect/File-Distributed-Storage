@@ -13,7 +13,7 @@ const FolderCard = ({ folder, onDoubleClick }) => {
         <span className="text-sm font-medium text-gray-700">{folder.name}</span>
       </div>
       <div className="mt-2 text-xs text-gray-500">
-        {new Date(folder.updatedAt).toLocaleDateString()}
+        {new Date(folder.createdAt).toLocaleDateString()}
       </div>
     </div>
   );

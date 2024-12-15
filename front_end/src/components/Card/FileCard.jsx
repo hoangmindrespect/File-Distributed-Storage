@@ -61,7 +61,7 @@ const FileCard = ({ file }) => {
         </span>
       </div>
       <div className="mt-2 text-[10px] text-gray-400 text-center">
-        {new Date(file.updatedAt).toLocaleDateString()}
+        {new Date(file.createdAt).toLocaleDateString()}
       </div>
     </div>
   );
