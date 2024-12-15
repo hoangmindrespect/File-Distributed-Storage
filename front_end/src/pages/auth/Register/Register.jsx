@@ -2,35 +2,37 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Validation from "./RegisterValidation";
 import { ROUTES } from "../../../constants/routes";
-// import { nikaApi } from "../../api/nikaApi";
+import { dfsApi } from "../../../api/dfsApi";
+import toast from "react-hot-toast";
 
 const Register = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [pass, setPass] = useState("");
   const [confpassword, setConfPassword] = useState("");
   const [errors, setErrors] = useState({});
   
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const values = { email, password, confpassword };
-    const validationErrors = Validation(values);
-    setErrors(validationErrors);
+    const values = { email, pass};
+    // const validationErrors = Validation(values);
+    // setErrors(validationErrors);
 
-    if (
-      !validationErrors.email &&
-      !validationErrors.password &&
-      !validationErrors.confpassword
+    if (true
+      // !validationErrors.email &&
+      // !validationErrors.pass
     ) {
       try {
         const user = {
           email,
-          password,
-          firstName: "Khang",
-          lastName: "Nguyễn Nhật",
+          pass,
         };
-        // register api
+        const response = await dfsApi.register(user);
+        if (response.status === 200) {
+          toast.success("Register Successfully!");
+          navigate("/login");
+        }
       } catch (error) {
         alert("Register failed!");
         console.error(error);
@@ -40,11 +42,11 @@ const Register = () => {
 
   return (
     <>
-      <div className="flex h-screen">
+      <div className="flex h-screen -m-2 md:-m-6">
         {/* Image */}
         <div className="max-md:hidden w-[40%] bg-gray-100 justify-center items-center">
           <img
-            src="https://i.pinimg.com/originals/5a/5a/24/5a5a248199fb41dbdcc853d366557a23.gif"
+            src="https://i.pinimg.com/736x/ca/1d/ae/ca1dae96bd0f6c4692d120f71f6b4ddb.jpg"
             alt="Img"
             className="h-full w-full object-cover"
           />
@@ -54,7 +56,7 @@ const Register = () => {
         <div className="w-full md:w-[60%]">
           <div className="flex flex-col flex-1 min-h-full justify-center items-center px-6 py-4 lg:px-8 -mt-4">
             <Link to={ROUTES.HOME}>
-              <img src="/ASA_LOGO_LIGHT.png" alt="logo" className="w-[100px] h-[100px] object-contain" />
+              <img src="/app_logo.png" alt="logo" className="w-[100px] h-[100px] object-contain" />
             </Link>
             <div className="sm:mx-auto sm:w-full sm:max-w-sm">
               <h2 className="mt-[28px] text-center text-3xl font-bold leading-9 tracking-tight text-gray-900">
@@ -89,17 +91,17 @@ const Register = () => {
 
                 <div className="mt-4">
                   <label
-                    htmlFor="password"
+                    htmlFor="pass"
                     className="block text-sm font-medium leading-6 text-gray-900"
                   >
                     Password
                   </label>
                   <div className="mt-2">
                     <input
-                      onChange={(e) => setPassword(e.target.value)}
-                      id="password"
-                      name="password"
-                      type="password"
+                      onChange={(e) => setPass(e.target.value)}
+                      id="pass"
+                      name="pass"
+                      type="pass"
                       autoComplete="current-password"
                       required
                       className="px-4 block w-full rounded-md border-0 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-600 sm:text-sm sm:leading-6 bg-white"

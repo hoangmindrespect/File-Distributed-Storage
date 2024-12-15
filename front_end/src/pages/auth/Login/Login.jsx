@@ -4,11 +4,14 @@ import { Snackbar } from "@mui/material";
 import Alert from "@mui/material/Alert";
 import toast from "react-hot-toast";
 import { ROUTES } from "../../../constants/routes";
+import Validation from "./LoginValidation";
+import { dfsApi } from "../../../api/dfsApi";
+
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState(null);
-  const [values, setValues] = useState({ email: "", password: "" });
+  const [values, setValues] = useState({ email: "", pass: "" });
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
@@ -21,49 +24,57 @@ const Login = () => {
     }));
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem('asa:access_token');
-    if (token) {
-      toast.success("You are already logged in!");
-      navigate(ROUTES.HOME);
-    }
-  }, [navigate]);
+  // useEffect(() => {
+  //   const token = localStorage.getItem('asa:access_token');
+  //   if (token) {
+  //     toast.success("You are already logged in!");
+  //     navigate(ROUTES.HOME);
+  //   }
+  // }, [navigate]);
 
   const handleSignIn = async (event) => {
     event.preventDefault();
-    const { email, password } = values;
+    const { email, pass } = values;
 
-    // Dummy validation function (you can replace it with your actual validation)
-    const validationErrors = {}; // Replace with your validation logic
+    const validationErrors = Validation(values);
     setErrors(validationErrors);
 
-    if (!validationErrors.email && !validationErrors.password) {
-      // Call the login API here and handle success/failure
-      // On success, store the tokens and redirect
-      localStorage.setItem(STORAGE.ACCESS_TOKEN, "your_access_token");
-      localStorage.setItem(STORAGE.REFRESH_TOKEN, "your_refresh_token");
-      localStorage.setItem('asa:email', email);
-
-      // Redirect to home page or reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 0);
-    } else {
-      setSnackbar({
-        children: "Wrong username or password",
-        severity: "error",
-      });
+    if (!validationErrors.email && !validationErrors.pass) {
+      try{
+        const user = { email, pass };
+        const response = await dfsApi.login(user);
+        localStorage.setItem('token', response.data.token);
+        toast.success("Login Successfully!");
+        handleNavigate();        
+      }
+      catch (error) {
+        setSnackbar({
+          children: "Wrong email or password",
+          severity: "error",
+        });
+        console.error(error);
+      }
     }
   };
+
+  const handleNavigate = async () => {
+    // const userData = await nikaApi.getUserMe(email);
+    // if (userData.data.role === "ADMIN") navigate("/admin/managecustomer");
+    // else navigate("/");
+    navigate("/");
+    // localStorage.setItem("currentUser", JSON.stringify(userData.data));
+    // localStorage.setItem("role", userData.data.role);
+  }
+
 
   return (
     <>
       {loading && <div>Loading...</div>}
-      <div className="flex h-screen">
+      <div className="flex h-screen -m-2 md:-m-6">
         {/* Image */}
         <div className="max-md:hidden w-[40%] bg-gray-100 items-center justify-center">
           <img
-            src="https://i.pinimg.com/originals/f4/d6/bf/f4d6bf1f954973b8f41f84d150f4377d.gif"
+            src="https://i.pinimg.com/originals/99/e2/4e/99e24e251bd535b7717a0f99b3e84138.gif"
             alt="Img"
             className="h-full w-full object-cover"
           />
@@ -73,7 +84,7 @@ const Login = () => {
         <div className="w-full md:w-[60%]">
           <div className="flex flex-col flex-1 min-h-full justify-center items-center px-6 py-8 lg:px-8 -mt-4">
             <Link to={ROUTES.HOME}>
-              <img src="/ASA_LOGO_LIGHT.png" alt="logo" className="w-[100px] h-[100px] object-contain" />
+              <img src="/app_logo.png" alt="logo" className="w-[100px] h-[100px] object-contain" />
             </Link>
             <div className="sm:mx-auto sm:w-full sm:max-w-sm">
               <h2 className="mt-10 text-center text-3xl font-bold leading-9 tracking-tight text-gray-900">
@@ -110,7 +121,7 @@ const Login = () => {
 
                 <div>
                   <label
-                    htmlFor="password"
+                    htmlFor="pass"
                     className="block font-medium leading-6 text-gray-900"
                   >
                     Password
@@ -118,16 +129,16 @@ const Login = () => {
                   <div className="mt-2">
                     <input
                       onChange={handleInput}
-                      id="password"
-                      name="password"
-                      type="password"
+                      id="pass"
+                      name="pass"
+                      type="pass"
                       autoComplete="current-password"
                       required
                       className="px-4 block w-full rounded-md border-0 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-600 sm:text-sm sm:leading-6 bg-white"
                     />
-                    {errors.password && (
+                    {errors.pass && (
                       <span className="text-red-500 text-xs">
-                        {errors.password}
+                        {errors.pass}
                       </span>
                     )}
                   </div>

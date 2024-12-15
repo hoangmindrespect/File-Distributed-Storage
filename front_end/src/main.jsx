@@ -9,18 +9,16 @@ import App from "./App";
 import Upload from "./pages/Upload.jsx";
 import Login from "./pages/auth/Login/Login.jsx";
 import Register from "./pages/auth/Register/Register.jsx";
+import MainLayout from "./layout/MainLayout.jsx";
+import BasePage from "./pages/base/BasePage.jsx";
+import MyDrive from "./pages/MyDrive.jsx";
 
-// Tạo router với cấu trúc routes và cờ future
 const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: <App />,
+      element: <BasePage />,
       children: [
-        {
-          path: "/",
-          element: <Upload />,
-        },
         {
           path: "/login",
           element: <Login />,
@@ -28,6 +26,18 @@ const router = createBrowserRouter(
         {
           path: "/register",
           element: <Register />,
+        },
+        {
+          path: "/home",
+          element: <MyDrive />,
+        },
+        {
+          path: "/my-drive",
+          element: <MyDrive />,
+        },
+        {
+          path: "/upload",
+          element: <Upload />,
         },
       ],
     },

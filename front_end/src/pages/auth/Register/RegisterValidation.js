@@ -23,15 +23,15 @@ function Validation(values) {
          error.password = ""
     }
 
-    if(values.confpassword === "") {
-        error.confpassword = "This field cannot be empty"
-    }
-    else if(values.confpassword != values.password){
-        error.confpassword = "Confirm password didn't match"
-    } 
-    else{
-        error.confpassword = ""
-    }
+    // if(values.confpassword === "") {
+    //     error.confpassword = "This field cannot be empty"
+    // }
+    // else if(values.confpassword != values.password){
+    //     error.confpassword = "Confirm password didn't match"
+    // } 
+    // else{
+    //     error.confpassword = ""
+    // }
 
     return error;
 }
