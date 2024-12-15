@@ -16,31 +16,39 @@ import MyDrive from "./pages/MyDrive.jsx";
 const router = createBrowserRouter(
   [
     {
-      path: "/",
-      element: <BasePage />,
+      path: '/',
+      element: <App />,
       children: [
+        // Auth routes
         {
-          path: "/login",
-          element: <Login />,
+          path: 'login',
+          element: <Login />
         },
         {
-          path: "/register",
-          element: <Register />,
+          path: 'register',
+          element: <Register />
         },
+        // Protected routes
         {
-          path: "/home",
-          element: <MyDrive />,
-        },
-        {
-          path: "/my-drive",
-          element: <MyDrive />,
-        },
-        {
-          path: "/upload",
-          element: <Upload />,
-        },
-      ],
-    },
+          path: '/',
+          element: <BasePage />,
+          children: [
+            {
+              path: 'home',
+              element: <MyDrive />
+            },
+            {
+              path: 'my-drive',
+              element: <MyDrive />
+            },
+            {
+              path: 'my-drive/:folderId',
+              element: <MyDrive />
+            }
+          ]
+        }
+      ]
+    }
   ],
   {
     future: {

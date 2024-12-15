@@ -61,7 +61,7 @@ const Login = () => {
     // const userData = await nikaApi.getUserMe(email);
     // if (userData.data.role === "ADMIN") navigate("/admin/managecustomer");
     // else navigate("/");
-    navigate("/");
+    navigate("/home");
     // localStorage.setItem("currentUser", JSON.stringify(userData.data));
     // localStorage.setItem("role", userData.data.role);
   }
@@ -70,7 +70,7 @@ const Login = () => {
   return (
     <>
       {loading && <div>Loading...</div>}
-      <div className="flex h-screen -m-2 md:-m-6">
+      <div className="flex h-screen">
         {/* Image */}
         <div className="max-md:hidden w-[40%] bg-gray-100 items-center justify-center">
           <img

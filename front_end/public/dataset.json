@@ -1,0 +1,67 @@
+{
+    "folders": [
+      {
+        "folderId": "folder-root",
+        "name": "My Drive",
+        "parentId": null,
+        "childFolders": ["folder-2", "folder-3"],
+        "childFiles": ["file-1", "file-2"],
+        "createdAt": "2024-12-15T10:00:00Z"
+      },
+      {
+        "folderId": "folder-2",
+        "name": "Documents",
+        "parentId": "folder-root",
+        "childFolders": [],
+        "childFiles": ["file-3"],
+        "createdAt": "2024-12-15T10:10:00Z"
+      },
+      {
+        "folderId": "folder-3",
+        "name": "Images",
+        "parentId": "folder-root",
+        "childFolders": [],
+        "childFiles": ["file-4"],
+        "createdAt": "2024-12-15T10:20:00Z"
+      }
+    ],
+    "files": [
+      {
+        "fileId": "file-1",
+        "name": "example.pdf",
+        "parentFolderId": "folder-root",
+        "chunks": ["chunk-1", "chunk-2"],
+        "size": 1048576,
+        "type": "application/pdf",
+        "createdAt": "2024-12-15T10:05:00Z"
+      },
+      {
+        "fileId": "file-2",
+        "name": "data.txt",
+        "parentFolderId": "folder-root",
+        "chunks": ["chunk-3"],
+        "size": 524288,
+        "type": "text/csv",
+        "createdAt": "2024-12-15T10:07:00Z"
+      },
+      {
+        "fileId": "file-3",
+        "name": "resume.docx",
+        "parentFolderId": "folder-2",
+        "chunks": ["chunk-4", "chunk-5"],
+        "size": 768000,
+        "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "createdAt": "2024-12-15T10:12:00Z"
+      },
+      {
+        "fileId": "file-4",
+        "name": "photo.jpg",
+        "parentFolderId": "folder-3",
+        "chunks": ["chunk-6", "chunk-7", "chunk-8"],
+        "size": 2097152,
+        "type": "image/jpeg",
+        "createdAt": "2024-12-15T10:25:00Z"
+      }
+    ]
+  }
+  

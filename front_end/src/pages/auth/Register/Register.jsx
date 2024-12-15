@@ -42,7 +42,7 @@ const Register = () => {
 
   return (
     <>
-      <div className="flex h-screen -m-2 md:-m-6">
+      <div className="flex h-screen">
         {/* Image */}
         <div className="max-md:hidden w-[40%] bg-gray-100 justify-center items-center">
           <img
