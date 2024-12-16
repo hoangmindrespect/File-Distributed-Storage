@@ -111,13 +111,21 @@ func DeleteDirectoryHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Directory deleted successfully"})
 }
 
-func GetAllDirectoriesHandler(w http.ResponseWriter, r *http.Request) {
+func GetAllDirectoriesByUserIDHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	directories, err := services.GetAllDirectories()
+	// Lấy UserID từ token
+	userID, err := services.GetUserByToken(r.Header.Get("Authorization"))
+	if err != nil {
+		http.Error(w, "Invalid or missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Lấy danh sách thư mục theo UserID
+	directories, err := services.GetAllDirectoriesByUserId(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -133,18 +141,29 @@ func GetDirectoryByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	folderID := r.URL.Query().Get("folder_id")
-	if folderID == "" {
+	// Lấy fileID từ query
+	fileID := r.URL.Query().Get("folder_id")
+	if fileID == "" {
 		http.Error(w, "folder_id is required", http.StatusBadRequest)
 		return
 	}
 
-	directory, err := services.GetDirectoryByID(folderID)
+	// Lấy UserID từ token
+	userID, err := services.GetUserByToken(r.Header.Get("Authorization"))
+	if err != nil {
+		http.Error(w, "Invalid or missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Lấy thông tin file theo fileID
+	file, err := services.GetDirectoryById(fileID, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(directory)
+	json.NewEncoder(w).Encode(file)
 }
+
+

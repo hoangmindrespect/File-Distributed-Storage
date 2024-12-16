@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,12 +10,14 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Tạo thư mục mới
 func CreateDirectory(name string) (string, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("directory")
 	folderID := primitive.NewObjectID().Hex()
+	userId, _ := GetUserByToken(Token)
 
 	newDirectory := bson.M{
 		"folder_id":       folderID,
@@ -23,6 +26,7 @@ func CreateDirectory(name string) (string, error) {
 		"child_file_id":   []string{},
 		"child_folder_id": []string{},
 		"create_at":       time.Now(),
+		"user_id": userId,
 		"update_at":       time.Now(),
 	}
 
@@ -98,15 +102,17 @@ func DeleteDirectory(folderID string) error {
 	return nil
 }
 
-func GetAllDirectories() ([]bson.M, error) {
+func GetAllDirectoriesByUserId(userID string) ([]bson.M, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("directory")
 
-	cursor, err := CoreDatabase.Find(context.Background(), bson.M{})
+	// Lọc các thư mục có user_id khớp với userID
+	cursor, err := CoreDatabase.Find(context.Background(), bson.M{"user_id": userID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch directories: %w", err)
 	}
 	defer cursor.Close(context.Background())
 
+	// Duyệt qua kết quả và lưu trữ
 	var directories []bson.M
 	if err := cursor.All(context.Background(), &directories); err != nil {
 		return nil, fmt.Errorf("failed to decode directories: %w", err)
@@ -115,19 +121,25 @@ func GetAllDirectories() ([]bson.M, error) {
 	return directories, nil
 }
 
-func GetDirectoryByID(folderID string) (bson.M, error) {
+
+func GetDirectoryById(folderID, userID string) (bson.M, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("directory")
 
-	objectID, err := primitive.ObjectIDFromHex(folderID)
+	// Tìm file metadata theo file_id
+	var directory  bson.M
+	err := CoreDatabase.FindOne(context.Background(), bson.M{"folder_id": folderID}).Decode(&directory)
 	if err != nil {
-		return nil, fmt.Errorf("invalid folder_id: %w", err)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("file with ID %s not found", folderID)
+		}
+		return nil, fmt.Errorf("failed to retrieve file metadata: %w", err)
 	}
 
-	var directory bson.M
-	err = CoreDatabase.FindOne(context.Background(), bson.M{"folder_id": objectID}).Decode(&directory)
-	if err != nil {
-		return nil, fmt.Errorf("directory not found: %w", err)
+	// Kiểm tra quyền truy cập
+	if directory ["user_id"] != userID {
+		return nil, fmt.Errorf("access denied: file does not belong to the current user")
 	}
 
-	return directory, nil
+	return directory , nil
 }
+

@@ -58,7 +58,7 @@ func main() {
 	http.HandleFunc("/directory/rename", enableCORS(controller.RenameDirectoryHandler))
 	http.HandleFunc("/directory/delete", enableCORS(controller.DeleteDirectoryHandler))
 
-	http.HandleFunc("/directory/get_all_directories", enableCORS(controller.GetAllDirectoriesHandler))
+	http.HandleFunc("/directory/get_all_directories", enableCORS(controller.GetAllDirectoriesByUserIDHandler))
 	http.HandleFunc("/directory/get_directory_by_id", enableCORS(controller.GetDirectoryByIDHandler))
 
 	fmt.Println("Server is running on port 8080")
