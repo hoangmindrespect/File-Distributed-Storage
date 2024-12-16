@@ -237,3 +237,43 @@ func RenameFile(fileID string, newFileName string) error {
 
 	return nil
 }
+
+func GetAllFilesByUserID(userID string) ([]bson.M, error) {
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
+
+	// Lọc các file có user_id khớp với userID
+	cursor, err := CoreDatabase.Find(context.Background(), bson.M{"user_id": userID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve files: %w", err)
+	}
+	defer cursor.Close(context.Background())
+
+	// Duyệt qua kết quả và lưu trữ
+	var files []bson.M
+	if err = cursor.All(context.Background(), &files); err != nil {
+		return nil, fmt.Errorf("failed to decode files: %w", err)
+	}
+
+	return files, nil
+}
+
+func GetFileByID(fileID, userID string) (bson.M, error) {
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
+
+	// Tìm file metadata theo file_id
+	var fileMetadata bson.M
+	err := CoreDatabase.FindOne(context.Background(), bson.M{"file_id": fileID}).Decode(&fileMetadata)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("file with ID %s not found", fileID)
+		}
+		return nil, fmt.Errorf("failed to retrieve file metadata: %w", err)
+	}
+
+	// Kiểm tra quyền truy cập
+	if fileMetadata["user_id"] != userID {
+		return nil, fmt.Errorf("access denied: file does not belong to the current user")
+	}
+
+	return fileMetadata, nil
+}

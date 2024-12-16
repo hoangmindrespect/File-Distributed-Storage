@@ -102,3 +102,58 @@ func RenameFileHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "File renamed successfully",
 	})
 }
+
+func GetAllFilesByUserIDHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Lấy UserID từ token
+	userID, err := services.GetUserByToken(r.Header.Get("Authorization"))
+	if err != nil {
+		http.Error(w, "Invalid or missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Lấy danh sách file theo UserID
+	files, err := services.GetAllFilesByUserID(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(files)
+}
+
+func GetFileByIDHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Lấy fileID từ query
+	fileID := r.URL.Query().Get("file_id")
+	if fileID == "" {
+		http.Error(w, "file_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Lấy UserID từ token
+	userID, err := services.GetUserByToken(r.Header.Get("Authorization"))
+	if err != nil {
+		http.Error(w, "Invalid or missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Lấy thông tin file theo fileID
+	file, err := services.GetFileByID(fileID, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(file)
+}

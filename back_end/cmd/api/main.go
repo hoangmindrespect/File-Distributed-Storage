@@ -50,6 +50,8 @@ func main() {
 	http.HandleFunc("/file/download", enableCORS(controller.DownloadFileHandler))
 	http.HandleFunc("/file/delete", enableCORS(controller.DeleteFileHandler))
 	http.HandleFunc("/file/rename", enableCORS(controller.RenameFileHandler))
+	http.HandleFunc("/file/get_all", enableCORS(controller.GetAllFilesByUserIDHandler))
+	http.HandleFunc("/file/get_file_by_id", enableCORS(controller.GetFileByIDHandler))
 
 	http.HandleFunc("/directory/create", enableCORS(controller.CreateDirectoryHandler))
 	http.HandleFunc("/directory/update", enableCORS(controller.UpdateDirectoryHandler))
