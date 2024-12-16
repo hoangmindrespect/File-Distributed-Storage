@@ -50,12 +50,13 @@ func UploadFile(filePath string) error {
 	fileName := filepath.Base(filePath)
 	fileExtension := filepath.Ext(filePath)
 	fileSize := fileInfo.Size()
-
+	userId, _ := GetUserByToken(Token)
 	// Save file's properties to FDS
 	result, err := CoreDatabase.InsertOne(context.Background(), bson.M{
 		"file_name":   fileName,
 		"file_type":   fileExtension,
 		"file_size":   fileSize,
+		"user_id": userId,
 		"upload_time": time.Now(),
 	})
 	if err != nil {

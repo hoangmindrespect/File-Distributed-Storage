@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var Token string
 func RegisterUser(user *models.User) error {
     collection := database.FDS.Database("FDS").Collection("user")
     var existingUser models.User
@@ -74,7 +75,7 @@ func LoginUser(email, password string) (string, error) {
     if err != nil {
         return "", err
     }
-
+    Token = token
     // Cập nhật token vào MongoDB
     update := bson.M{"$set": bson.M{"token": token, "update_at": time.Now()}}
     _, err = collection.UpdateOne(context.TODO(), bson.M{"email": email}, update)
@@ -82,11 +83,11 @@ func LoginUser(email, password string) (string, error) {
     return token, err
 }
 
-func GetUserByToken(token string) (*models.User, error) {
+func GetUserByToken(token string) (string, error) {
     // Xác thực token và lấy user_id
     userID, err := helper.ValidateJWT(token)
     if err != nil {
-        return nil, errors.New("invalid token")
+        return "nil", errors.New("invalid token")
     }
 
     // Lấy user theo user_id từ database
@@ -94,8 +95,8 @@ func GetUserByToken(token string) (*models.User, error) {
     var user models.User
     err = collection.FindOne(context.TODO(), bson.M{"user_id": userID}).Decode(&user)
     if err != nil {
-        return nil, errors.New("user not found")
+        return "nil", errors.New("user not found")
     }
 
-    return &user, nil
+    return userID, nil
 }

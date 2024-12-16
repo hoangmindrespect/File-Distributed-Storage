@@ -46,11 +46,18 @@ func main() {
 	// http.HandleFunc("/getusers", controller.GetAllUsersHandler)
 	http.HandleFunc("/currentuser", enableCORS(controller.CurrentUserHandler))
 
-	// Định nghĩa route handlers
-	http.HandleFunc("/upload", enableCORS(controller.UploadFileHandler))
-	http.HandleFunc("/download", enableCORS(controller.DownloadFileHandler))
-	http.HandleFunc("/delete", enableCORS(controller.DeleteFileHandler))
-	http.HandleFunc("/rename", enableCORS(controller.RenameFileHandler))
+	http.HandleFunc("/file/upload", enableCORS(controller.UploadFileHandler))
+	http.HandleFunc("/file/download", enableCORS(controller.DownloadFileHandler))
+	http.HandleFunc("/file/delete", enableCORS(controller.DeleteFileHandler))
+	http.HandleFunc("/file/rename", enableCORS(controller.RenameFileHandler))
+
+	http.HandleFunc("/directory/create", enableCORS(controller.CreateDirectoryHandler))
+	http.HandleFunc("/directory/update", enableCORS(controller.UpdateDirectoryHandler))
+	http.HandleFunc("/directory/rename", enableCORS(controller.RenameDirectoryHandler))
+	http.HandleFunc("/directory/delete", enableCORS(controller.DeleteDirectoryHandler))
+
+	http.HandleFunc("/directory/get_all_directories", enableCORS(controller.GetAllDirectoriesHandler))
+	http.HandleFunc("/directory/get_directory_by_id", enableCORS(controller.GetDirectoryByIDHandler))
 
 	fmt.Println("Server is running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
