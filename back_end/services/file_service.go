@@ -89,7 +89,7 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
         }
 
 		chunk := models.Chunk{
-			FileID:     newFile.FileID,
+			FileID:     fileID,
 			FileName:   newFile.FileName,
 			ChunkIndex: i,
 			Data:       data[startIndex:endIndex],
@@ -99,6 +99,7 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 		Datacollection := database.LiveNodes[i].Database("Data").Collection("chunks")
 		_, err := Datacollection.InsertOne(context.Background(), chunk)
 		if err != nil {
+			CoreDatabase.DeleteOne(context.Background(), bson.M{"_id": fileID})
 			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
 		}
 	}

@@ -5,6 +5,7 @@ import { config } from "./Constants";
 export const dfsApi = {
   login,
   register,
+  uploadFile,
 }
 
 function login(user) {
@@ -17,7 +18,7 @@ function register(user) {
   });
 }
 
-function uploadFile(file, parentFolderId){
+function uploadFile(formData){
   return instance.post("/file/upload", formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
