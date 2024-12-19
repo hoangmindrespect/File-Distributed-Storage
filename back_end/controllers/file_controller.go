@@ -9,33 +9,50 @@ import (
 )
 
 func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
-	filePath := r.URL.Query().Get("file_path")
-	if filePath == "" {
-		http.Error(w, "file_path is required", http.StatusBadRequest)
-		return
-	}
-
-	var request struct {
-        ParentFolderID string `json:"parent_folder_id"`
-    }
-    if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
+    // Check method
+    if r.Method != http.MethodPost {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
         return
     }
 
-	err := services.UploadFile(filePath, request.ParentFolderID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+    // Get multipart reader
+    reader, err := r.MultipartReader()
+    if err != nil {
+        http.Error(w, "Error getting multipart reader", http.StatusBadRequest)
+        return
+    }
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "File uploaded successfully"})
+    // Read first part (file)
+    part, err := reader.NextPart()
+    if err != nil {
+        http.Error(w, "Error reading multipart form", http.StatusBadRequest)
+        return
+    }
+
+    if part.FileName() == "" {
+        http.Error(w, "No file provided", http.StatusBadRequest)
+        return
+    }
+
+    // Get parent folder ID from query params
+    parentFolderId := r.URL.Query().Get("parentFolderId")
+    if parentFolderId == "" {
+        parentFolderId = "folder-root"
+    }
+
+    // Stream file to service
+    err = services.UploadFile(part, part.FileName(), parentFolderId)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Return success response
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]string{
+        "status": "success",
+        "message": "File uploaded successfully",
+    })
 }
 
 func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -18,40 +19,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-
-func UploadFile(filePath string, parentFolderId string) error {
-	file, err := os.Open(filePath)
+func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) error {
+	// Get user from token
+	userId, err := GetUserByToken(Token)
 	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	fileInfo, err := os.Stat(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to load stat file: %w", err)
+		return errors.New("unauthorized")
 	}
 
-	fileData, err := io.ReadAll(file)
-	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
-	}
-
-	//Tạo file metadata
-	userId, _ := GetUserByToken(Token)
+	// Create file metadata
 	newFile := models.File{
-		FileName:   filepath.Base(filePath),
-		FileType:   filepath.Ext(filePath),
-		FileSize:   fileInfo.Size(),
-		UserID	:    userId,
-		UploadTime: time.Now(),
+		FileName:       fileName,
+		FileType:       filepath.Ext(fileName),
+		UserID:         userId,
+		UploadTime:     time.Now(),
 		ParentFolderID: parentFolderId,
 	}
 
-	// Save file's properties to FDS
+	// Save metadata to MongoDB first
 	CoreDatabase := database.FDS.Database("FDS").Collection("file")
 	result, err := CoreDatabase.InsertOne(context.Background(), newFile)
 	if err != nil {
-		return fmt.Errorf("failed to insert: %w", err)
+		return fmt.Errorf("failed to create file metadata: %v", err)
 	}
 
 	// Update FileID with ObjectID
@@ -61,44 +49,55 @@ func UploadFile(filePath string, parentFolderId string) error {
 	}
 	fileID := insertedID.Hex()
 
+	// Create temporary buffer to calculate size and chunks
+    var buffer bytes.Buffer
+    size, err := io.Copy(&buffer, fileContent)
+    if err != nil {
+        return fmt.Errorf("failed to read file: %v", err)
+    }
+
+	// Update file size
 	_, err = CoreDatabase.UpdateOne(
 		context.Background(),
-		bson.M{"_id": insertedID}, 
-		bson.M{"$set": bson.M{"file_id": fileID}}, 
+		bson.M{"_id": insertedID},
+		bson.M{"$set": bson.M{
+			"file_id"	: fileID,
+			"file_size"	: size,
+		}},
 	)
-	if err != nil {
-		return fmt.Errorf("failed to update file_id: %w", err)
-	}
+    if err != nil {
+        return fmt.Errorf("failed to update file size: %v", err)
+    }
 
 	// Chia file thành các chunk và lưu vào các node, bao nhiu node bấy nhiu chunk
+	data := buffer.Bytes()
 	numberOfNodes := len(database.LiveNodes)
 	if numberOfNodes == 0 {
 		return fmt.Errorf("no nodes available")
 	}
 
-	totalFileSize := len(fileData)
-	chunkSize := totalFileSize / numberOfNodes
-	if totalFileSize%numberOfNodes != 0 {
-		chunkSize++ 
-	}
+    chunkSize := len(data) / numberOfNodes
+    if chunkSize == 0 {
+        chunkSize = len(data)
+    }
 
 	for i := 0; i < numberOfNodes; i++ {
 		startIndex := i * chunkSize
 		endIndex := startIndex + chunkSize
-		if endIndex > totalFileSize {
-			endIndex = totalFileSize
-		}
-
-        chunk := models.Chunk{
-            FileID:     newFile.FileID,
-            FileName:   newFile.FileName,
-            ChunkIndex: i,
-            Data:       fileData[startIndex:endIndex],
-            UploadTime: time.Now(),
+        if i == numberOfNodes-1 {
+            endIndex = len(data)
         }
 
-        Datacollection := database.LiveNodes[i].Database("Data").Collection("chunks")
-        _, err := Datacollection.InsertOne(context.Background(), chunk)
+		chunk := models.Chunk{
+			FileID:     newFile.FileID,
+			FileName:   newFile.FileName,
+			ChunkIndex: i,
+			Data:       data[startIndex:endIndex],
+			UploadTime: time.Now(),
+		}
+
+		Datacollection := database.LiveNodes[i].Database("Data").Collection("chunks")
+		_, err := Datacollection.InsertOne(context.Background(), chunk)
 		if err != nil {
 			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
 		}
@@ -140,7 +139,6 @@ func DeleteFile(fileID string) error {
 	fmt.Printf("File %s and its chunks deleted successfully\n", fileID)
 	return nil
 }
-
 
 func DownloadFile(fileName string) error {
 	if fileName == "" {

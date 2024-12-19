@@ -17,13 +17,10 @@ function register(user) {
   });
 }
 
-//need headers authenticate
-function uploadFile(filePath, parentFolderId){
-  return instance.post(`/file/upload?file_path=${encodeURIComponent(filePath)}`, {
-    params: {
-      parent_folder_id: parentFolderId
-    },
+function uploadFile(file, parentFolderId){
+  return instance.post("/file/upload", formData, {
     headers: {
+      'Content-Type': 'multipart/form-data',
       Authorization: bearerAuth(localStorage.getItem("token")),
     },
   });
