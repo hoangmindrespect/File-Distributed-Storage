@@ -17,6 +17,20 @@ function register(user) {
   });
 }
 
+//need headers authenticate
+function uploadFile(filePath, parentFolderId){
+  return instance.post(`/file/upload?file_path=${encodeURIComponent(filePath)}`, {
+    params: {
+      parent_folder_id: parentFolderId
+    },
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
+
+
 // -- Axios
 
 const instance = axios.create({

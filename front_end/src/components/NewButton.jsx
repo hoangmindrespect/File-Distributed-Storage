@@ -1,8 +1,9 @@
 import { Plus, FolderPlus, Upload, FolderUp } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '../lib/utils';
+import { dfsApi } from '../api/dfsApi';
 
-const NewButton = () => {
+const NewButton = ({ currentFolderId}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -26,6 +27,21 @@ const NewButton = () => {
 
   const handleFileUpload = () => {
     fileInputRef.current?.click();
+  }
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const filePath = file.path; 
+            await dfsApi.uploadFile(filePath, currentFolderId);
+            // Handle success (e.g., refresh file list)
+        } catch (error) {
+            console.error('Upload failed:', error);
+            // Handle error (show notification etc)
+        }
+        setIsOpen(false);
   };
 
   const handleFolderUpload = () => {
@@ -85,11 +101,7 @@ const NewButton = () => {
         className="hidden"
         webkitdirectory="true"
         directory="true"
-        onChange={(e) => {
-          // Handle folder upload
-          console.log(e.target.files);
-          setIsOpen(false);
-        }}
+        onChange={handleFileChange}
       />
     </div>
   );

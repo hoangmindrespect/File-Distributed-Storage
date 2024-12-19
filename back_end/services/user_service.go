@@ -7,7 +7,7 @@ import (
 
 	database "back_end/database"
 	helper "back_end/helpers"
-	models "back_end/users"
+	models "back_end/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

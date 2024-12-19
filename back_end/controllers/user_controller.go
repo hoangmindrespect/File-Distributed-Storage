@@ -2,7 +2,7 @@ package controller
 
 import (
 	services "back_end/services"
-	models "back_end/users"
+	models "back_end/models"
 	"encoding/json"
 	"fmt"
 	"net/http"

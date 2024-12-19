@@ -11,6 +11,7 @@ import (
 	"time"
 
 	database "back_end/database"
+	models "back_end/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,7 +19,7 @@ import (
 )
 
 
-func UploadFile(filePath string) error {
+func UploadFile(filePath string, parentFolderId string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
@@ -35,39 +36,29 @@ func UploadFile(filePath string) error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	numberOfNodes := len(database.LiveNodes)
-	if numberOfNodes == 0 {
-		return fmt.Errorf("no nodes available")
-	}
-
-	totalFileSize := len(fileData)
-	chunkSize := totalFileSize / numberOfNodes
-	if totalFileSize%numberOfNodes != 0 {
-		chunkSize++ 
-	}
-	CoreDatabase := database.FDS.Database("FDS").Collection("file")
-
-	fileName := filepath.Base(filePath)
-	fileExtension := filepath.Ext(filePath)
-	fileSize := fileInfo.Size()
+	//Tạo file metadata
 	userId, _ := GetUserByToken(Token)
+	newFile := models.File{
+		FileName:   filepath.Base(filePath),
+		FileType:   filepath.Ext(filePath),
+		FileSize:   fileInfo.Size(),
+		UserID	:    userId,
+		UploadTime: time.Now(),
+		ParentFolderID: parentFolderId,
+	}
+
 	// Save file's properties to FDS
-	result, err := CoreDatabase.InsertOne(context.Background(), bson.M{
-		"file_name":   fileName,
-		"file_type":   fileExtension,
-		"file_size":   fileSize,
-		"user_id": userId,
-		"upload_time": time.Now(),
-	})
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
+	result, err := CoreDatabase.InsertOne(context.Background(), newFile)
 	if err != nil {
 		return fmt.Errorf("failed to insert: %w", err)
 	}
 
+	// Update FileID with ObjectID
 	insertedID, ok := result.InsertedID.(primitive.ObjectID)
 	if !ok {
 		return fmt.Errorf("failed to cast InsertedID to ObjectID")
 	}
-
 	fileID := insertedID.Hex()
 
 	_, err = CoreDatabase.UpdateOne(
@@ -80,6 +71,17 @@ func UploadFile(filePath string) error {
 	}
 
 	// Chia file thành các chunk và lưu vào các node, bao nhiu node bấy nhiu chunk
+	numberOfNodes := len(database.LiveNodes)
+	if numberOfNodes == 0 {
+		return fmt.Errorf("no nodes available")
+	}
+
+	totalFileSize := len(fileData)
+	chunkSize := totalFileSize / numberOfNodes
+	if totalFileSize%numberOfNodes != 0 {
+		chunkSize++ 
+	}
+
 	for i := 0; i < numberOfNodes; i++ {
 		startIndex := i * chunkSize
 		endIndex := startIndex + chunkSize
@@ -87,20 +89,16 @@ func UploadFile(filePath string) error {
 			endIndex = totalFileSize
 		}
 
-		chunkData := fileData[startIndex:endIndex]
+        chunk := models.Chunk{
+            FileID:     newFile.FileID,
+            FileName:   newFile.FileName,
+            ChunkIndex: i,
+            Data:       fileData[startIndex:endIndex],
+            UploadTime: time.Now(),
+        }
 
-		nodeIndex := i
-		Datacollection := database.LiveNodes[nodeIndex].Database("Data").Collection("chunks")
-		
-		// Save data to nodes
-		_, err := Datacollection.InsertOne(context.Background(), bson.M{
-			"file_name":  fileName,
-			"chunk_index": i,
-			"data":        chunkData,
-			"upload_time": time.Now(),
-			"file_id": fileID,
-			
-		})
+        Datacollection := database.LiveNodes[i].Database("Data").Collection("chunks")
+        _, err := Datacollection.InsertOne(context.Background(), chunk)
 		if err != nil {
 			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
 		}

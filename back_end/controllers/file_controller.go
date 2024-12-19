@@ -20,7 +20,15 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := services.UploadFile(filePath)
+	var request struct {
+        ParentFolderID string `json:"parent_folder_id"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+	err := services.UploadFile(filePath, request.ParentFolderID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
