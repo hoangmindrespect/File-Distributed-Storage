@@ -9,6 +9,7 @@ const MyDrive = () => {
   const [childFiles, setChildFiles] = useState([]);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
   const navigate = useNavigate();
+  const [activeContextMenu, setActiveContextMenu] = useState(null);
   const { folderId = 'folder-root' } = useParams();
 
   const fetchBreadcrumbs = async (currentFolderId) => {
@@ -32,6 +33,21 @@ const MyDrive = () => {
     } catch (error) {
       console.error('Error loading breadcrumbs:', error);
     }
+  };
+
+  useEffect(() => {
+    const handleClick = () => setActiveContextMenu(null);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
+
+  const handleContextMenu = (e, itemData) => {
+    e.preventDefault();
+    setActiveContextMenu({
+      x: e.pageX,
+      y: e.pageY,
+      item: itemData
+    });
   };
 
   useEffect(() => {
@@ -91,6 +107,9 @@ const MyDrive = () => {
                 key={folder.folderId}
                 folder={folder}
                 onDoubleClick={handleFolderDoubleClick}
+                onContextMenu={handleContextMenu}
+                activeContextMenu={activeContextMenu}
+                setActiveContextMenu={setActiveContextMenu}
               />
             ))}
           </div>
@@ -103,7 +122,13 @@ const MyDrive = () => {
           <h2 className="text-lg font-medium text-gray-700 mb-4">Files</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {childFiles.map(file => (
-              <FileCard key={file.fileId} file={file} />
+              <FileCard 
+                key={file.fileId} 
+                file={file} 
+                onContextMenu={handleContextMenu}
+                activeContextMenu={activeContextMenu}
+                setActiveContextMenu={setActiveContextMenu}
+              />
             ))}
           </div>
         </div>

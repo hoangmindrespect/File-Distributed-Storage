@@ -2,24 +2,24 @@ import { Loader2, X, CheckCircle2, XCircle } from "lucide-react";
 import { useEffect } from "react";
 
 const FileUploadProgress = ({ uploads, onCancel }) => {
-  useEffect(() => {
-    const allCompleted = uploads.every(
-      (upload) => upload.status === "completed" || upload.status === "error"
-    );
+  // useEffect(() => {
+  //   const allCompleted = uploads.every(
+  //     (upload) => upload.status === "completed" || upload.status === "error"
+  //   );
 
-    let timeoutId;
-    if (allCompleted && uploads.length > 0) {
-      timeoutId = setTimeout(() => {
-        onCancel();
-      }, 5000);
-    }
+  //   let timeoutId;
+  //   if (allCompleted && uploads.length > 0) {
+  //     timeoutId = setTimeout(() => {
+  //       onCancel();
+  //     }, 5000);
+  //   }
 
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [uploads, onCancel]);
+  //   return () => {
+  //     if (timeoutId) {
+  //       clearTimeout(timeoutId);
+  //     }
+  //   };
+  // }, [uploads, onCancel]);
 
   const getProgressColor = (status) => {
     switch (status) {
@@ -79,9 +79,9 @@ const FileUploadProgress = ({ uploads, onCancel }) => {
           </button>
         </div>
 
-        <div className="space-y-3 max-h-60 overflow-auto">
+        <div className="">
           {uploads.map((upload) => (
-            <div key={upload.id} className="text-sm">
+            <div key={upload.id} className="text-sm mb-8">
               <div className="flex justify-between mb-1 items-center">
                 <span className="truncate max-w-[60%]">{upload.fileName}</span>
                 <div className="flex items-center gap-2">

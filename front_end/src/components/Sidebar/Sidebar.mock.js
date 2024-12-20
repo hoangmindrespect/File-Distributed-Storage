@@ -14,11 +14,11 @@ export const sidebarMock = [
   {
     title: 'Main',
     items: [
-      {
-        icon: Home,
-      href: "/home",
-        title: 'Home',
-      },
+      // {
+      //   icon: Home,
+      // href: "/home",
+      //   title: 'Home',
+      // },
       // {
       //   icon: Bell,
       //   href: "/#",

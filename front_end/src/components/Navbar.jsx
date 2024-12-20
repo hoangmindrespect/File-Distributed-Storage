@@ -37,7 +37,7 @@ const Navbar = () => {
   return (
     <header className="flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 sticky top-0 z-50">
       {/* Logo */}
-      <Link to="/" className="flex items-center space-x-2 ml-16">
+      <Link to="/my-drive" className="flex items-center space-x-2 ml-16">
         <img src={logo} className="h-8 w-8" alt="Logo" />
         <span className="text-gray-700 font-semibold text-xl">DFS</span>
       </Link>

@@ -19,6 +19,28 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+func getUniqueFileName(collection *mongo.Collection, fileName string, parentFolderId string) string {
+	baseFileName := fileName
+	extension := filepath.Ext(fileName)
+	fileNameWithoutExt := fileName[:len(fileName)-len(extension)]
+	i := 1;
+
+	for {
+		var existingFile bson.M
+		err := collection.FindOne(context.Background(),
+			bson.M{
+				"file_name": 	 baseFileName,
+				"parent_folder_id": parentFolderId,
+			}).Decode(&existingFile) 
+		if err == mongo.ErrNoDocuments{
+			return fileName
+		}	
+
+		fileName = fmt.Sprintf("%s (%d)", fileNameWithoutExt, i, extension)
+		i++
+	}
+}
+
 func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) error {
 	// Get user from token
 	userId, err := GetUserByToken(Token)
@@ -26,9 +48,11 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 		return errors.New("unauthorized")
 	}
 
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
+	
 	// Create file metadata
 	newFile := models.File{
-		FileName:       fileName,
+		FileName:       getUniqueFileName(CoreDatabase, fileName, parentFolderId),
 		FileType:       filepath.Ext(fileName),
 		UserID:         userId,
 		UploadTime:     time.Now(),
@@ -36,7 +60,6 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 	}
 
 	// Save metadata to MongoDB first
-	CoreDatabase := database.FDS.Database("FDS").Collection("file")
 	result, err := CoreDatabase.InsertOne(context.Background(), newFile)
 	if err != nil {
 		return fmt.Errorf("failed to create file metadata: %v", err)

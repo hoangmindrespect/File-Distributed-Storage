@@ -35,22 +35,22 @@ const NewButton = ({ currentFolderId }) => {
   };
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
-  
+
     const newUploads = files.map((file) => ({
       id: Math.random().toString(36),
       fileName: file.name,
       progress: 0,
       status: "pending",
     }));
-  
+
     setUploads((prev) => [...prev, ...newUploads]);
-  
-    try {
-      for (const file of files) {
+
+    for (const file of files) {
+      try {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("parentFolderId", currentFolderId);
-  
+
         // Start upload
         setUploads((prev) =>
           prev.map((upload) =>
@@ -59,9 +59,9 @@ const NewButton = ({ currentFolderId }) => {
               : upload
           )
         );
-  
-        await dfsApi.uploadFile(formData);
-  
+
+        const response =  await dfsApi.uploadFile(formData);
+
         // Update on success
         setUploads((prev) =>
           prev.map((upload) =>
@@ -70,22 +70,29 @@ const NewButton = ({ currentFolderId }) => {
               : upload
           )
         );
-  
-        toast.success(`Uploaded ${file.name} successfully`);
+
+        if(response.status === 200){
+          toast.success(`Uploaded ${file.name} successfully`);
+          setTimeout(() => {
+            setUploads((prev) =>
+              prev.filter((upload) => upload.fileName !== file.name)
+            );
+          }
+          , 3000);
+        }
+      } catch (error) {
+        setUploads((prev) =>
+          prev.map((upload) =>
+            upload.fileName === file.name
+              ? { ...upload, status: "error" }
+              : upload
+          )
+        );
+        console.error("Upload failed:", error);
+        toast.error("Upload failed");
       }
-    } catch (error) {
-      // Update failed status
-      setUploads((prev) =>
-        prev.map((upload) =>
-          upload.fileName === file.name
-            ? { ...upload, status: "error" }
-            : upload
-        )
-      );
-      console.error("Upload failed:", error);
-      toast.error("Upload failed");
     }
-  
+
     setIsOpen(false);
   };
 

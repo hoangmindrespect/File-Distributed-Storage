@@ -6,6 +6,8 @@ export const dfsApi = {
   login,
   register,
   uploadFile,
+  downloadFile,
+  deleteFile,
 }
 
 function login(user) {
@@ -20,8 +22,24 @@ function register(user) {
 
 function uploadFile(formData){
   return instance.post("/file/upload", formData, {
-    headers: {
+  headers: {
       'Content-Type': 'multipart/form-data',
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
+function downloadFile(fileName){
+  return instance.get(`/file/download/${fileName}`, {
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
+function deleteFile(fileId){
+  return instance.delete(`/file/delete/${fileId}`, {
+    headers: {
       Authorization: bearerAuth(localStorage.getItem("token")),
     },
   });

@@ -61,7 +61,7 @@ const Login = () => {
     // const userData = await nikaApi.getUserMe(email);
     // if (userData.data.role === "ADMIN") navigate("/admin/managecustomer");
     // else navigate("/");
-    navigate("/home");
+    navigate("/my-drive");
     // localStorage.setItem("currentUser", JSON.stringify(userData.data));
     // localStorage.setItem("role", userData.data.role);
   }
