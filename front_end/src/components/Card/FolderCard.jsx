@@ -62,7 +62,7 @@ const FolderCard = ({ folder, onDoubleClick, onContextMenu, activeContextMenu, s
         </div>
       </div>
       {activeContextMenu?.item?.type === 'folder' && 
-       activeContextMenu?.item?.data?.file_id === folder.file_id && (
+       activeContextMenu?.item?.data?.folder_id === folder.folder_id && (
         <ContextMenu 
           x={activeContextMenu.x} 
           y={activeContextMenu.y}
