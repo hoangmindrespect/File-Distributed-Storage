@@ -177,13 +177,13 @@ const NewButton = ({ currentFolderId }) => {
               <Upload size={18} />
               <span>File Upload</span>
             </button>
-            <button
+            {/* <button
               onClick={onClickUploadFolder}
               className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50"
             >
               <FolderUp size={18} />
               <span>Folder Upload</span>
-            </button>
+            </button> */}
           </div>
         )}
 
