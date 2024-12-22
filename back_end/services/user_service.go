@@ -53,10 +53,10 @@ func RegisterUser(user *models.User) error {
         return err
     }
 
+    CreateDirectory("My Drive", "", user.User_id, true)
+
     return nil
 }
-
-
 
 func LoginUser(email, password string) (string, error) {
     collection := database.FDS.Database("FDS").Collection("user")

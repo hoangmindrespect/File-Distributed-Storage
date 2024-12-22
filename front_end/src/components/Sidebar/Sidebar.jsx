@@ -8,7 +8,7 @@ import { sidebarMock } from './Sidebar.mock';
 import { cn } from '../../lib/utils';
 import NewButton from '../NewButton';
 
-const Sidebar = () => {
+const Sidebar = ({ currentFolderId }) => {
 //   const { theme } = useTheme();
   return (
     <div
@@ -28,7 +28,7 @@ const Sidebar = () => {
       >
         {/* Add NewButton at the top */}
         <div className="mb-4">
-          <NewButton />
+          <NewButton currentFolderId={currentFolderId}/>
         </div>
 
         <div className={cn("flex flex-col", "gap-6")}>

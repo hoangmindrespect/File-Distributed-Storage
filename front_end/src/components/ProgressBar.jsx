@@ -1,7 +1,8 @@
 import { Loader2, X, CheckCircle2, XCircle } from "lucide-react";
+import { use } from "react";
 import { useEffect } from "react";
 
-const FileUploadProgress = ({ uploads, onCancel }) => {
+const ProgressBar = ({ progresses, onCancel }) => {
   // useEffect(() => {
   //   const allCompleted = uploads.every(
   //     (upload) => upload.status === "completed" || upload.status === "error"
@@ -40,6 +41,8 @@ const FileUploadProgress = ({ uploads, onCancel }) => {
         return "Pending...";
       case "uploading":
         return "Uploading...";
+      case "downloading":
+        return "Downloading...";
       case "processing":
         return "Processing...";
       case "completed":
@@ -52,6 +55,7 @@ const FileUploadProgress = ({ uploads, onCancel }) => {
   };
 
   const getStatusIcon = (status) => {
+    console.log(status);
     switch (status) {
       case "completed":
         return <CheckCircle2 size={16} className="text-green-500" />;
@@ -59,12 +63,17 @@ const FileUploadProgress = ({ uploads, onCancel }) => {
         return <XCircle size={16} className="text-red-500" />;
       case "pending":
       case "uploading":
-      case "processing":
+      case "downloading":
         return <Loader2 size={16} className="animate-spin text-blue-500" />;
       default:
         return null;
     }
   };
+
+  useEffect(() => {
+    console.log(progresses);
+  }
+  , [progresses]);
 
   return (
     <div className="fixed bottom-4 right-4 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
@@ -80,23 +89,23 @@ const FileUploadProgress = ({ uploads, onCancel }) => {
         </div>
 
         <div className="">
-          {uploads.map((upload) => (
-            <div key={upload.id} className="text-sm mb-8">
+          {progresses.map((progress) => (
+            <div key={progress.id} className="text-sm mb-8">
               <div className="flex justify-between mb-1 items-center">
-                <span className="truncate max-w-[60%]">{upload.fileName}</span>
+                <span className="truncate max-w-[60%]">{progress.fileName}</span>
                 <div className="flex items-center gap-2">
-                  {getStatusIcon(upload.status)}
+                  {getStatusIcon(progress.status)}
                 </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-1.5">
                 <div
                   className={`h-1.5 rounded-full transition-all duration-300 ${getProgressColor(
-                    upload.status
+                    progress.status
                   )}`}
-                  style={{ width: `${upload.progress}%` }}
+                  style={{ width: `${progress.progressCount}%` }}
                 />
                 <span className="text-gray-600">
-                  {getStatusText(upload.status)}
+                  {getStatusText(progress.status)}
                 </span>
               </div>
             </div>
@@ -107,4 +116,4 @@ const FileUploadProgress = ({ uploads, onCancel }) => {
   );
 };
 
-export default FileUploadProgress;
+export default ProgressBar;

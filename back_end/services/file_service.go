@@ -20,25 +20,51 @@ import (
 )
 
 func getUniqueFileName(collection *mongo.Collection, fileName string, parentFolderId string) string {
-	baseFileName := fileName
 	extension := filepath.Ext(fileName)
-	fileNameWithoutExt := fileName[:len(fileName)-len(extension)]
+	fileNameWithoutExt := fileName[:len(fileName)-len(extension)] 
 	i := 1;
-
 	for {
 		var existingFile bson.M
-		err := collection.FindOne(context.Background(),
+		collection.FindOne(context.Background(),
 			bson.M{
-				"file_name": 	 baseFileName,
+				"file_name": 		fileName,
 				"parent_folder_id": parentFolderId,
-			}).Decode(&existingFile) 
-		if err == mongo.ErrNoDocuments{
+			}).Decode(&existingFile)
+		if existingFile == nil {
 			return fileName
 		}	
 
-		fileName = fmt.Sprintf("%s (%d)", fileNameWithoutExt, i, extension)
+		fileName = fmt.Sprintf("%s (%d)%s", fileNameWithoutExt, i, extension)
 		i++
+		if(i > 5){
+			timestamp := time.Now().UnixNano()
+			return fmt.Sprintf("%s_%d%s", fileNameWithoutExt, timestamp, extension)
+		}
+
 	}
+}
+
+func updateParentFolderFiles(fileId string, parentFolderId string, isAdd bool) error {
+    update := bson.M{}
+    if isAdd {
+        update = bson.M{"$push": bson.M{"child_file_id": fileId}}
+    } else {
+        update = bson.M{"$pull": bson.M{"child_file_id": fileId}}
+    }
+
+    result, err := database.FDS.Database("FDS").Collection("directory").UpdateOne(
+        context.Background(),
+        bson.M{"folder_id": parentFolderId},
+        update,
+    )
+	if err != nil {
+		return fmt.Errorf("failed to update parent folder: %v", err)
+	}
+
+    if result.ModifiedCount == 0 {
+        return fmt.Errorf("failed to update parent folder")
+    }
+    return nil
 }
 
 func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) error {
@@ -72,9 +98,17 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 	}
 	fileID := insertedID.Hex()
 
+	// Update parent folder with new file
+	if err := updateParentFolderFiles(fileID, parentFolderId, true); err != nil {
+        // Rollback file creation if parent update fails
+        CoreDatabase.DeleteOne(context.Background(), bson.M{"_id": fileID})
+        return fmt.Errorf("failed to update parent folder: %v", err)
+    }
+
 	// Create temporary buffer to calculate size and chunks
     var buffer bytes.Buffer
     size, err := io.Copy(&buffer, fileContent)
+	fmt.Println("size", size)
     if err != nil {
         return fmt.Errorf("failed to read file: %v", err)
     }
@@ -158,6 +192,12 @@ func DeleteFile(fileID string) error {
 	_, err = CoreDatabase.DeleteOne(context.Background(), bson.M{"file_id": fileID})
 	if err != nil {
 		return fmt.Errorf("failed to delete file metadata: %w", err)
+	}
+
+	// Xóa file khỏi parent folder
+	parentFolderId := fileMetadata["parent_folder_id"].(string)
+	if err := updateParentFolderFiles(fileID, parentFolderId, false); err != nil {
+		return fmt.Errorf("failed to update parent folder: %w", err)
 	}
 
 	fmt.Printf("File %s and its chunks deleted successfully\n", fileID)

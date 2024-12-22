@@ -7,6 +7,7 @@ import (
 	"time"
 
 	database "back_end/database"
+	models "back_end/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,26 +15,42 @@ import (
 )
 
 // Tạo thư mục mới
-func CreateDirectory(name string) (string, error) {
+func CreateDirectory(name string, parentId string, userId string, isRoot bool) (string, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("directory")
-	folderID := primitive.NewObjectID().Hex()
-	userId, _ := GetUserByToken(Token)
 
-	newDirectory := bson.M{
-		"folder_id":       folderID,
-		"name":            name,
-		"parent_id":       nil,
-		"child_file_id":   []string{},
-		"child_folder_id": []string{},
-		"create_at":       time.Now(),
-		"user_id": userId,
-		"update_at":       time.Now(),
+	var folderID string
+	if isRoot {
+		folderID = "folder-root-" + userId		
+	} else {
+		folderID = primitive.NewObjectID().Hex()
 	}
 
+	if parentId == "folder-root-" {
+		parentId = parentId + userId
+	}
+
+	newDirectory := models.Directory{
+		FolderID:    folderID,
+		Name:        name,
+		UserID:      userId,
+		ParentID:    parentId,
+		ChildFileID: []string{},
+		ChildFolderID: []string{},
+		CreateAt:    time.Now(),
+		UpdateAt:    time.Now(),
+	}
+	
 	_, err := CoreDatabase.InsertOne(context.Background(), newDirectory)
 	if err != nil {
 		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
+
+	// Update parent folder's child_folder_id array if parent exists
+	if parentId != "" {
+        if err := UpdateDirectory(parentId, folderID, false); err != nil {
+            return "", fmt.Errorf("failed to update parent directory: %w", err)
+        }
+    }
 
 	return folderID, nil
 }
@@ -88,18 +105,66 @@ func UpdateDirectory(folderID, id string, isFile bool) error {
 }
 
 func DeleteDirectory(folderID string) error {
-	CoreDatabase := database.FDS.Database("FDS").Collection("directory")
+    CoreDatabase := database.FDS.Database("FDS").Collection("directory")
+    
+    // Get folder info to find parent
+    var folder models.Directory
+    err := CoreDatabase.FindOne(context.Background(), bson.M{"folder_id": folderID}).Decode(&folder)
+    if err != nil {
+        return fmt.Errorf("folder not found: %w", err)
+    }
 
-	result, err := CoreDatabase.DeleteOne(context.Background(), bson.M{"folder_id": folderID})
-	if err != nil {
-		return fmt.Errorf("failed to delete directory: %w", err)
-	}
+    // Recursively get and delete all children
+    if err := deleteDirectoryRecursive(folderID); err != nil {
+        return err
+    }
 
-	if result.DeletedCount == 0 {
-		return fmt.Errorf("directory with folder_id %s not found", folderID)
-	}
+    // Update parent folder's references
+    if folder.ParentID != "" {
+        _, err = CoreDatabase.UpdateOne(
+            context.Background(),
+			bson.M{"folder_id": folder.ParentID},
+            bson.M{"$pull": bson.M{"child_folder_id": folderID}},
+        )
+        if err != nil {
+            return fmt.Errorf("failed to update parent folder: %w", err)
+        }
+    }
 
-	return nil
+    return nil
+}
+
+func deleteDirectoryRecursive(folderID string) error {
+    CoreDatabase := database.FDS.Database("FDS").Collection("directory")
+    
+    // Get current folder
+    var folder models.Directory
+    err := CoreDatabase.FindOne(context.Background(), bson.M{"folder_id": folderID}).Decode(&folder)
+    if err != nil {
+        return fmt.Errorf("folder not found: %w", err)
+    }
+
+    // Delete all child files
+    for _, fileID := range folder.ChildFileID {
+        if err := DeleteFile(fileID); err != nil {
+            return fmt.Errorf("failed to delete child file: %w", err)
+        }
+    }
+
+    // Recursively delete all child folders
+    for _, childFolderID := range folder.ChildFolderID {
+        if err := deleteDirectoryRecursive(childFolderID); err != nil {
+            return fmt.Errorf("failed to delete child folder: %w", err)
+        }
+    }
+
+    // Delete current folder
+    _, err = CoreDatabase.DeleteOne(context.Background(), bson.M{"folder_id": folderID})
+    if err != nil {
+        return fmt.Errorf("failed to delete directory: %w", err)
+    }
+
+    return nil
 }
 
 func GetAllDirectoriesByUserId(userID string) ([]bson.M, error) {
@@ -120,7 +185,6 @@ func GetAllDirectoriesByUserId(userID string) ([]bson.M, error) {
 
 	return directories, nil
 }
-
 
 func GetDirectoryById(folderID, userID string) (bson.M, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("directory")

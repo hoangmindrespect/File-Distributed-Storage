@@ -1,29 +1,93 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import FolderCard from '../components/Card/FolderCard';
-import FileCard from '../components/Card/FileCard';
+import { useState, useEffect } from "react";
+import FolderCard from "../components/Card/FolderCard";
+import FileCard from "../components/Card/FileCard";
+import { dfsApi } from "../api/dfsApi";
+import { useParams, useNavigate } from "react-router-dom";
+import { FolderOpen } from 'lucide-react'
+import { useRefresh } from '../components/context/RefreshContext';
+
+
 
 const MyDrive = () => {
+  const [allFolders, setAllFolders] = useState([]);
+  const [allFiles, setAllFiles] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [childFolders, setChildFolders] = useState([]);
   const [childFiles, setChildFiles] = useState([]);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
   const navigate = useNavigate();
   const [activeContextMenu, setActiveContextMenu] = useState(null);
-  const { folderId = 'folder-root' } = useParams();
+  // const [refreshKey, setRefreshKey] = useState(0);
+  const { refreshKey } = useRefresh();
+  const [secondRefreshKey, setSecondRefreshKey] = useState(0);
+  
+  const [userId, setUserId] = useState(null);
+  localStorage.setItem("userId", userId);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userResponse = await dfsApi.getCurrentUser();
+        setUserId(userResponse.data);
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const { folder_id = `folder-root-${userId}` } = useParams();
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const folderResponse = await dfsApi.getFoldersByUserId();
+        const fileResponse = await dfsApi.getFilesByUserId();
+
+        setAllFolders(folderResponse.data.data || []);
+        setAllFiles(fileResponse.data.data || []);
+      } catch (error) {
+        console.error("Error loading drive data:", error);
+      }
+    };
+    fetchData();
+  }, [refreshKey, secondRefreshKey]);
+
+  // Second useEffect for processing folder structure
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const folder = allFolders.find((f) => f.folder_id === folder_id);
+        setCurrentFolder(folder);
+
+        const folders = allFolders.filter((f) =>
+          folder.child_folder_id.includes(f.folder_id)
+        );
+        setChildFolders(folders);
+
+        const files = allFiles.filter((f) =>
+          folder.child_file_id.includes(f.file_id)
+        );
+        setChildFiles(files);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    fetchBreadcrumbs(folder_id);
+    fetchData();
+  }, [allFolders, allFiles, folder_id]);
 
   const fetchBreadcrumbs = async (currentFolderId) => {
     try {
-      const response = await fetch('/dataset.json');
-      const data = await response.json();
       const path = [];
       let currentId = currentFolderId;
 
       while (currentId) {
-        const folder = data.folders.find(f => f.folderId === currentId);
+        const folder = allFolders.find((f) => f.folder_id === currentId);
         if (folder) {
-          path.unshift({ id: folder.folderId, name: folder.name });
-          currentId = folder.parentId;
+          path.unshift({ id: folder.folder_id, name: folder.name });
+          currentId = folder.parent_id;
         } else {
           break;
         }
@@ -31,7 +95,7 @@ const MyDrive = () => {
 
       setBreadcrumbs(path);
     } catch (error) {
-      console.error('Error loading breadcrumbs:', error);
+      console.error("Error loading breadcrumbs:", error);
     }
   };
 
@@ -46,39 +110,31 @@ const MyDrive = () => {
     setActiveContextMenu({
       x: e.pageX,
       y: e.pageY,
-      item: itemData
+      item: itemData,
     });
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('/dataset.json');
-        const data = await response.json();
-        
-        const folder = data.folders.find(f => f.folderId === folderId);
-        setCurrentFolder(folder);
-        
-        const folders = data.folders.filter(f => folder.childFolders.includes(f.folderId));
-        setChildFolders(folders);
-        
-        const files = data.files.filter(f => folder.childFiles.includes(f.fileId));
-        setChildFiles(files);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
-    fetchBreadcrumbs(folderId);
-    fetchData();
-  }, [folderId]);
-
-  const handleBreadcrumbClick = (folderId) => {
-    navigate(`/my-drive/${folderId}`);
+  const handleBreadcrumbClick = (folder_id) => {
+    navigate(`/my-drive/${folder_id}`);
   };
 
-  const handleFolderDoubleClick = (folderId) => {
-    navigate(`/my-drive/${folderId}`);
+  const handleFolderDoubleClick = (folder_id) => {
+    navigate(`/my-drive/${folder_id}`);
   };
+
+  const refreshData = () => {
+    setSecondRefreshKey(prev => prev + 1);
+  };
+
+  const EmptyFolder = () => (
+    <div className="flex flex-col items-center justify-center h-[60vh] text-gray-500">
+      <FolderOpen size={64} className="mb-4 text-gray-400" />
+      <h3 className="text-xl font-medium mb-2">This folder is empty</h3>
+      <p className="text-sm text-gray-400">
+        Use the New button to add content
+      </p>
+    </div>
+  );
 
   return (
     <div className="p-6">
@@ -96,42 +152,49 @@ const MyDrive = () => {
           </div>
         ))}
       </div>
-      
-      {/* Folders Section */}
-      {childFolders.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-700 mb-4">Folders</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {childFolders.map(folder => (
-              <FolderCard
-                key={folder.folderId}
-                folder={folder}
-                onDoubleClick={handleFolderDoubleClick}
-                onContextMenu={handleContextMenu}
-                activeContextMenu={activeContextMenu}
-                setActiveContextMenu={setActiveContextMenu}
-              />
-            ))}
+      {(!childFolders.length && !childFiles.length) ? (
+        <EmptyFolder />
+      ) : (
+      <>
+        {/* Folders Section */}
+        {childFolders.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-medium text-gray-700 mb-4">Folders</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-[150px]">
+              {childFolders.map((folder) => (
+                <FolderCard
+                  key={folder.folder_id}
+                  folder={folder}
+                  onDoubleClick={handleFolderDoubleClick}
+                  onContextMenu={handleContextMenu}
+                  activeContextMenu={activeContextMenu}
+                  setActiveContextMenu={setActiveContextMenu}
+                  onUpdate={refreshData}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-      
-      {/* Files Section */}
-      {childFiles.length > 0 && (
-        <div>
-          <h2 className="text-lg font-medium text-gray-700 mb-4">Files</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {childFiles.map(file => (
-              <FileCard 
-                key={file.fileId} 
-                file={file} 
-                onContextMenu={handleContextMenu}
-                activeContextMenu={activeContextMenu}
-                setActiveContextMenu={setActiveContextMenu}
-              />
-            ))}
+        )}
+
+        {/* Files Section */}
+        {childFiles.length > 0 && (
+          <div>
+            <h2 className="text-lg font-medium text-gray-700 mb-4">Files</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4 min-w-[120px]">
+              {childFiles.map((file) => (
+                <FileCard
+                  key={file.file_id}
+                  file={file}
+                  onContextMenu={handleContextMenu}
+                  activeContextMenu={activeContextMenu}
+                  setActiveContextMenu={setActiveContextMenu}
+                  onUpdate={refreshData}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+      </>
       )}
     </div>
   );

@@ -5,53 +5,83 @@ import (
 	"fmt"
 	"net/http"
 
+	"back_end/models"
 	services "back_end/services"
 )
 
 func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
     // Check method
     if r.Method != http.MethodPost {
         http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
         return
     }
 
-    // Get multipart reader
-    reader, err := r.MultipartReader()
+    // // Get multipart reader
+    // reader, err := r.MultipartReader()
+    // if err != nil {
+    //     http.Error(w, "Error getting multipart reader", http.StatusBadRequest)
+    //     return
+    // }
+
+    // // Read first part (file)
+    // part, err := reader.NextPart()
+    // if err != nil {
+    //     http.Error(w, "Error reading multipart form", http.StatusBadRequest)
+    //     return
+    // }
+
+	// // Check if file is provided
+    // if part.FileName() == "" {
+    //     http.Error(w, "No file provided", http.StatusBadRequest)
+    //     return
+    // }
+
+    // // Get parent folder ID from query params
+    // parentFolderId := r.URL.Query().Get("parentFolderId")
+
+    // Get user from token first
+    userId, err := services.GetUserByToken(r.Header.Get("Authorization"))
     if err != nil {
-        http.Error(w, "Error getting multipart reader", http.StatusBadRequest)
+        json.NewEncoder(w).Encode(models.ApiResponse{
+            Success: false,
+            Message: "Invalid or missing token",
+        })
         return
     }
 
-    // Read first part (file)
-    part, err := reader.NextPart()
+	// Get file from multipart form
+    file, handler, err := r.FormFile("file")
     if err != nil {
-        http.Error(w, "Error reading multipart form", http.StatusBadRequest)
+        json.NewEncoder(w).Encode(models.ApiResponse{
+            Success: false,
+            Message: "No file provided",
+        })
         return
     }
+    defer file.Close()
 
-    if part.FileName() == "" {
-        http.Error(w, "No file provided", http.StatusBadRequest)
-        return
-    }
+	parentFolderId := r.URL.Query().Get("parentFolderId")
+	if parentFolderId == "folder-root-" {
+		parentFolderId = parentFolderId + userId
+	}
 
-    // Get parent folder ID from query params
-    parentFolderId := r.URL.Query().Get("parentFolderId")
-    if parentFolderId == "" {
-        parentFolderId = "folder-root"
-    }
-
-    // Stream file to service
-    err = services.UploadFile(part, part.FileName(), parentFolderId)
+    // Upload file
+    err = services.UploadFile(file, handler.Filename, parentFolderId)
     if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+        json.NewEncoder(w).Encode(models.ApiResponse{
+            Success: false,
+            Message: err.Error(),
+        })
         return
     }
 
     // Return success response
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{
-        "status": "success",
-        "message": "File uploaded successfully",
+    // Return success response
+    json.NewEncoder(w).Encode(models.ApiResponse{
+        Success: true,
+        Message: "File uploaded successfully",
     })
 }
 
@@ -101,7 +131,6 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
 func RenameFileHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -129,30 +158,40 @@ func RenameFileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllFilesByUserIDHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
+        json.NewEncoder(w).Encode(models.ApiResponse{Success: false, Message: "Invalid request method"})
+        w.WriteHeader(http.StatusMethodNotAllowed)
+        return
 	}
 
 	// Lấy UserID từ token
 	userID, err := services.GetUserByToken(r.Header.Get("Authorization"))
 	if err != nil {
-		http.Error(w, "Invalid or missing token", http.StatusUnauthorized)
-		return
+		json.NewEncoder(w).Encode(models.ApiResponse{Success: false, Message: "Invalid or missing token"})
+        w.WriteHeader(http.StatusUnauthorized)
+        return
 	}
 
 	// Lấy danh sách file theo UserID
 	files, err := services.GetAllFilesByUserID(userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		json.NewEncoder(w).Encode(models.ApiResponse{Success: false, Message: "Invalid or missing token"})
+        w.WriteHeader(http.StatusInternalServerError)
+        return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(files)
+	json.NewEncoder(w).Encode(models.ApiResponse{
+		Success: true,
+		Data:    files,
+	})
 }
 
 func GetFileByIDHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
@@ -180,5 +219,8 @@ func GetFileByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(file)
+	json.NewEncoder(w).Encode(models.ApiResponse{
+		Success: true,
+		Data:    file,
+	})
 }
