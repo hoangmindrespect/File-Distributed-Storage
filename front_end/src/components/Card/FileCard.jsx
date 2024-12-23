@@ -94,7 +94,7 @@ const FileCard = ({
     );
 
     try {
-      const response = await dfsApi.downloadFile(file.file_name);
+      const response = await dfsApi.downloadFile(file.file_id);
       if (response.status === 200) {
         setProgress((prev) =>
           prev.map((progress) =>

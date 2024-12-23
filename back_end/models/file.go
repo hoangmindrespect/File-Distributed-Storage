@@ -14,4 +14,10 @@ type File struct {
     UserID     		string            	`bson:"user_id" json:"user_id"`
     UploadTime 		time.Time         	`bson:"upload_time" json:"upload_time"`
 	ParentFolderID 	string            	`bson:"parent_folder_id" json:"parent_folder_id"`
+    ChunkLocations []ChunkLocation `bson:"chunk_locations"`
+}
+
+type ChunkLocation struct {
+    ChunkIndex int `bson:"chunk_index"`
+    NodeIndex  int `bson:"node_index"`
 }
