@@ -68,7 +68,7 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
     // Upload file
-    err = services.UploadFile(file, handler.Filename, parentFolderId)
+    err = services.UploadFileParallel(file, handler.Filename, parentFolderId)
     if err != nil {
         json.NewEncoder(w).Encode(models.ApiResponse{
             Success: false,
@@ -77,7 +77,6 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Return success response
     // Return success response
     json.NewEncoder(w).Encode(models.ApiResponse{
         Success: true,
@@ -119,7 +118,7 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := services.DownloadFile(fileName)
+	err := services.DownloadFileParallel(fileName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
