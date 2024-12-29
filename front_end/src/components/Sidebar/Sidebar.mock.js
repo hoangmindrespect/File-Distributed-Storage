@@ -46,12 +46,12 @@ export const sidebarMock = [
       // },
       {
         icon: Star,
-        href: "/#",
+        href: "/starred",
         title: 'Starred',
       },
       {
         icon: Trash2,
-        href: "/#",
+        href: "/trash",
         title: 'Trash',
       },
       // {

@@ -12,6 +12,8 @@ import Register from "./pages/auth/Register/Register.jsx";
 import MainLayout from "./layout/MainLayout.jsx";
 import BasePage from "./pages/base/BasePage.jsx";
 import MyDrive from "./pages/MyDrive.jsx";
+import Starred from "./pages/Starred.jsx";
+import Trash from "./pages/Trash.jsx";
 
 const router = createBrowserRouter(
   [
@@ -42,9 +44,14 @@ const router = createBrowserRouter(
               element: <MyDrive />
             },
             {
-              path: 'my-drive/:folder_id',
-              element: <MyDrive />
-            }
+              path: 'starred',
+              element: <Starred />
+            },
+            ,
+            {
+              path: 'trash',
+              element: <Trash />
+            },
           ]
         }
       ]

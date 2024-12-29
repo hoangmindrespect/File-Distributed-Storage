@@ -15,6 +15,12 @@ export const dfsApi = {
   createFolder,
   renameFolder,
   deleteFolder,
+  addToStarred,
+  removeFromStarred,
+  loadStarred,
+  moveToTrash,
+  restore,
+  loadTrash,
 }
 
 function login(user) {
@@ -86,6 +92,84 @@ function getFilesByUserId(){
   });
 }
 
+function addToStarred(fileId) {
+  return instance.post(`/file/add_to_starred`, 
+    {
+      file_id: fileId,
+      user_id: localStorage.getItem("userId"),
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function removeFromStarred(fileId) {
+  return instance.post(`/file/remove_from_starred`, 
+    {
+      file_id: fileId,
+      user_id: localStorage.getItem("userId"),
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function loadStarred(){
+  return instance.get(`/file/load_starred`, {
+    params: {
+      user_id: localStorage.getItem("userId"),
+    },
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
+function moveToTrash(fileId) {
+  return instance.post(`/file/move_to_trash`, 
+    {
+      file_id: fileId,
+      user_id: localStorage.getItem("userId"),
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function restore(fileId) {
+  return instance.post(`/file/restore`, 
+    {
+      file_id: fileId,
+      user_id: localStorage.getItem("userId"),
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function loadTrash(){
+  return instance.get(`/file/load_trash`, {
+    params: {
+      user_id: localStorage.getItem("userId"),
+    },
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
 function getFoldersByUserId(){
   return instance.get("/directory/get_all_directories", {
     headers: {
@@ -130,7 +214,6 @@ function deleteFolder(folderId){
     },
   });
 }
-
 
 // -- Axios
 

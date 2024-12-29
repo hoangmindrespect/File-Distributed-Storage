@@ -5,6 +5,7 @@ import {
   FileAudio,
   FileCode,
   File,
+  StarIcon,
 } from "lucide-react";
 
 import { FaFilePdf } from "react-icons/fa6";
@@ -124,11 +125,11 @@ const FileCard = ({
 
   const handleDelete = async () => {
     try {
-      await dfsApi.deleteFile(file.file_id);
-      toast.success("File deleted successfully");
+      await dfsApi.moveToTrash(file.file_id);
+      toast.success("File was moved to trash successfully");
       onUpdate();
     } catch (error) {
-      toast.error("Failed to delete file");
+      toast.error("Failed to move file to trash");
     }
   };
 
@@ -146,6 +147,15 @@ const FileCard = ({
     }
   };
 
+  const handleAddToStarred = async () => {
+    try {
+      await dfsApi.addToStarred(file.file_id);
+      toast.success("File was add to starred successfully");
+      onUpdate();
+    } catch (error) {
+      toast.error("Failed to add to starred");
+    }
+  };
   return (
     <>
       <div
@@ -175,8 +185,10 @@ const FileCard = ({
               label="Download"
               onClick={handleDownload}
             />
-            <MenuItem icon={Trash2} label="Delete" onClick={handleDelete} />
+            <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
             <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
+            <MenuItem icon={StarIcon} label="Add to starred" onClick={handleAddToStarred} />
+
           </ContextMenu>
         )}
       {progress.length > 0 && (

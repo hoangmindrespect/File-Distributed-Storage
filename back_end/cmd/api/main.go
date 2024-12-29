@@ -79,6 +79,12 @@ func defineRoutes() []Route {
 		{"/file/rename", controller.RenameFileHandler},
 		{"/file/get_all", controller.GetAllFilesByUserIDHandler},
 		{"/file/get_file_by_id", controller.GetFileByIDHandler},
+		{"/file/add_to_starred", controller.AddToStarredHandler},
+		{"/file/remove_from_starred", controller.RemoveFromStarredHandler},
+		{"/file/load_starred", controller.LoadStarredHandler},
+		{"/file/move_to_trash", controller.MoveToTrashHandler},
+		{"/file/restore", controller.RestoreHandler},
+		{"/file/load_trash", controller.LoadFileInTrashHandler},
 
 		// Directory routes
 		{"/directory/create", controller.CreateDirectoryHandler},

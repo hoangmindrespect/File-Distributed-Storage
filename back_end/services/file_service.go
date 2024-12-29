@@ -100,6 +100,8 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 		FileSize:       int64(fileSize),
 		UploadTime:     time.Now(),
 		ParentFolderID: parentFolderId,
+		IsStarred: false,
+		IsMovedToTrash: false,
 		ChunkLocations: make([]models.ChunkLocation, numberOfChunks),
 	}
 
@@ -528,8 +530,13 @@ func RenameFile(fileID string, newFileName string) error {
 func GetAllFilesByUserID(userID string) ([]bson.M, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("file")
 
-	// Lọc các file có user_id khớp với userID
-	cursor, err := CoreDatabase.Find(context.Background(), bson.M{"user_id": userID})
+	// Lọc các file có user_id khớp với userID và is_moved_to_trash == false
+	filter := bson.M{
+		"user_id":            userID,
+		"is_moved_to_trash": false,
+	}
+
+	cursor, err := CoreDatabase.Find(context.Background(), filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve files: %w", err)
 	}
@@ -543,6 +550,7 @@ func GetAllFilesByUserID(userID string) ([]bson.M, error) {
 
 	return files, nil
 }
+
 
 func GetFileByID(fileID, userID string) (bson.M, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("file")
@@ -563,4 +571,102 @@ func GetFileByID(fileID, userID string) (bson.M, error) {
 	}
 
 	return fileMetadata, nil
+}
+
+func AddToStarred(userID, fileID string) error {
+	filter := bson.M{"user_id": userID, "file_id": fileID}
+	update := bson.M{"$set": bson.M{"is_starred": true}}
+
+	result, err := database.FDS.Database("FDS").Collection("file").UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to add to starred: %v", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("file with ID %s not found for user %s", fileID, userID)
+	}
+
+	return nil
+}
+
+func RemoveFromStarred(userID, fileID string) error {
+	filter := bson.M{"user_id": userID, "file_id": fileID}
+	update := bson.M{"$set": bson.M{"is_starred": false}}
+
+	result, err := database.FDS.Database("FDS").Collection("file").UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to remove from starred: %v", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("file with ID %s not found for user %s", fileID, userID)
+	}
+
+	return nil
+}
+
+func LoadStarred(userID string) ([]bson.M, error) {
+	filter := bson.M{"user_id": userID, "is_starred": true, "is_moved_to_trash": false}
+
+	cursor, err := database.FDS.Database("FDS").Collection("file").Find(context.Background(), filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load starred files: %v", err)
+	}
+	defer cursor.Close(context.Background())
+
+	var files []bson.M
+	if err := cursor.All(context.Background(), &files); err != nil {
+		return nil, fmt.Errorf("failed to decode files: %v", err)
+	}
+
+	return files, nil
+}
+
+func MoveToTrash(userID, fileID string) error {
+	filter := bson.M{"user_id": userID, "file_id": fileID}
+	update := bson.M{"$set": bson.M{"is_moved_to_trash": true}}
+
+	result, err := database.FDS.Database("FDS").Collection("file").UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to move to trash: %v", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("file with ID %s not found for user %s", fileID, userID)
+	}
+
+	return nil
+}
+
+func Restore(userID, fileID string) error {
+	filter := bson.M{"user_id": userID, "file_id": fileID}
+	update := bson.M{"$set": bson.M{"is_moved_to_trash": false}}
+
+	result, err := database.FDS.Database("FDS").Collection("file").UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to restore file: %v", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("file with ID %s not found for user %s", fileID, userID)
+	}
+
+	return nil
+}
+
+func LoadFileInTrash(userID string) ([]bson.M, error) {
+	filter := bson.M{"user_id": userID, "is_moved_to_trash": true}
+
+	cursor, err := database.FDS.Database("FDS").Collection("file").Find(context.Background(), filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load files in trash: %v", err)
+	}
+	defer cursor.Close(context.Background())
+
+	var files []bson.M
+	if err := cursor.All(context.Background(), &files); err != nil {
+		return nil, fmt.Errorf("failed to decode files: %v", err)
+	}
+
+	return files, nil
 }
