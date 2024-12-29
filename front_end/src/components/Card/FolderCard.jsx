@@ -1,4 +1,4 @@
-import { Folder } from "lucide-react";
+import { Folder, Share } from "lucide-react";
 import { FaFolder } from "react-icons/fa";
 
 import { Trash2, Edit } from "lucide-react";
@@ -6,13 +6,22 @@ import { ContextMenu, MenuItem } from "../context/ContextMenu";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { dfsApi } from "../../api/dfsApi";
+import ShareModal from "../ShareModal";
 
-
-const FolderCard = ({ folder, onDoubleClick, onContextMenu, activeContextMenu, setActiveContextMenu, onUpdate }) => {
+const FolderCard = ({
+  folder,
+  onDoubleClick,
+  onContextMenu,
+  activeContextMenu,
+  setActiveContextMenu,
+  onUpdate,
+}) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
   const handleContextMenu = (e) => {
     e.preventDefault();
-    onContextMenu(e, { type: 'folder', data: folder });
+    onContextMenu(e, { type: "folder", data: folder });
   };
 
   const handleDelete = async () => {
@@ -44,6 +53,15 @@ const FolderCard = ({ folder, onDoubleClick, onContextMenu, activeContextMenu, s
     }
   };
 
+  const handleShare = async (emails) => {
+    try {
+      await dfsApi.shareFolder(folder.folder_id, emails);
+      toast.success("Folder shared successfully");
+    } catch (error) {
+      toast.error("Failed to share folder");
+    }
+  };
+
   return (
     <>
       <div
@@ -61,23 +79,32 @@ const FolderCard = ({ folder, onDoubleClick, onContextMenu, activeContextMenu, s
           {new Date(folder.update_at).toLocaleDateString()}
         </div>
       </div>
-      {activeContextMenu?.item?.type === 'folder' && 
-       activeContextMenu?.item?.data?.folder_id === folder.folder_id && (
-        <ContextMenu 
-          x={activeContextMenu.x} 
-          y={activeContextMenu.y}
-          onClose={() => setActiveContextMenu(null)}
-        >
-          <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
-          <MenuItem icon={Trash2} label="Delete" onClick={handleDelete} />
-        </ContextMenu>
-      )}
+      {activeContextMenu?.item?.type === "folder" &&
+        activeContextMenu?.item?.data?.folder_id === folder.folder_id && (
+          <ContextMenu
+            x={activeContextMenu.x}
+            y={activeContextMenu.y}
+            onClose={() => setActiveContextMenu(null)}
+          >
+            <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
+            {/* <MenuItem icon={Share} label="Share" onClick={() => setShowShareModal(true)}/> */}
+            <MenuItem icon={Trash2} label="Delete" onClick={handleDelete} />
+          </ContextMenu>
+        )}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        onShare={handleShare}
+      />
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-[400px]">
-            <h3 className="text-lg font-medium text-red-600 mb-2">Delete Folder?</h3>
+            <h3 className="text-lg font-medium text-red-600 mb-2">
+              Delete Folder?
+            </h3>
             <p className="text-gray-600 mb-4">
-              Warning: This will permanently delete folder "{folder.name}" and <span className="font-bold">ALL folders/files</span> inside it. 
+              Warning: This will permanently delete folder "{folder.name}" and{" "}
+              <span className="font-bold">ALL folders/files</span> inside it.
               This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">

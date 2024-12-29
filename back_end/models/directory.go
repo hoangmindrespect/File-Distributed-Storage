@@ -14,5 +14,6 @@ type Directory struct {
 	ChildFolderID 	[]string          	`bson:"child_folder_id" json:"child_folder_id"`
 	CreateAt 		time.Time         	`bson:"create_at" json:"create_at"`
 	UserID     		string            	`bson:"user_id" json:"user_id"`
+	SharedUsers 	[]string			`bson:"shared_users" json:"shared_users"`
 	UpdateAt 		time.Time         	`bson:"update_at" json:"update_at"`
 }

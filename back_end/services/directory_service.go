@@ -207,3 +207,63 @@ func GetDirectoryById(folderID, userID string) (bson.M, error) {
 	return directory , nil
 }
 
+func ShareDirectory(folderID string, emails []string) error {
+    // Share parent folder
+    filter := bson.M{"folder_id": folderID}
+    update := bson.M{
+        "$addToSet": bson.M{
+            "shared_users": bson.M{
+                "$each": emails,
+            },
+        },
+    }
+    
+    _, err := database.FDS.Database("FDS").Collection("directory").UpdateOne(
+        context.Background(),
+        filter,
+        update,
+    )
+    if err != nil {
+        return fmt.Errorf("failed to share parent folder: %w", err)
+    }
+
+    // Get folder details
+    var folder models.Directory
+    err = database.FDS.Database("FDS").Collection("directory").FindOne(
+        context.Background(),
+        filter,
+    ).Decode(&folder)
+    if err != nil {
+        return fmt.Errorf("failed to get folder details: %w", err)
+    }
+
+    // Share child files
+    for _, fileID := range folder.ChildFileID {
+        err := ShareFile(fileID, emails)
+        if err != nil {
+            return fmt.Errorf("failed to share child file %s: %w", fileID, err)
+        }
+    }
+
+    // Recursively share child folders
+    for _, childFolderID := range folder.ChildFolderID {
+        err := ShareDirectory(childFolderID, emails)
+        if err != nil {
+            return fmt.Errorf("failed to share child folder %s: %w", childFolderID, err)
+        }
+    }
+
+    return nil
+}
+
+func GetSharedDirectories(email string) ([]bson.M, error) {
+    filter := bson.M{"shared_users": email}
+    cursor, err := database.FDS.Database("FDS").Collection("directory").Find(context.Background(), filter)
+    if err != nil {
+        return nil, err
+    }
+    var results []bson.M
+    err = cursor.All(context.Background(), &results)
+    return results, err
+}
+

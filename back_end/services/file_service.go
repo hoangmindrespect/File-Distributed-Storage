@@ -25,7 +25,6 @@ type ChunkLocation struct {
 	NodeIndex  int
 }
 
-
 func getUniqueFileName(collection *mongo.Collection, fileName string, parentFolderId string) string {
 	extension := filepath.Ext(fileName)
 	fileNameWithoutExt := fileName[:len(fileName)-len(extension)]
@@ -100,7 +99,7 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 		FileSize:       int64(fileSize),
 		UploadTime:     time.Now(),
 		ParentFolderID: parentFolderId,
-		IsStarred: false,
+		IsStarred:      false,
 		IsMovedToTrash: false,
 		ChunkLocations: make([]models.ChunkLocation, numberOfChunks),
 	}
@@ -171,130 +170,130 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 }
 
 func UploadFileParallel(fileContent io.Reader, fileName string, parentFolderId string) error {
-    // Read file content
-    data, err := io.ReadAll(fileContent)
-    if err != nil {
-        return fmt.Errorf("failed to read file: %v", err)
-    }
+	// Read file content
+	data, err := io.ReadAll(fileContent)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %v", err)
+	}
 
-    // Setup initial metadata
-    userId, err := GetUserByToken(Token)
-    if err != nil {
-        return errors.New("unauthorized")
-    }
+	// Setup initial metadata
+	userId, err := GetUserByToken(Token)
+	if err != nil {
+		return errors.New("unauthorized")
+	}
 
-    CoreDatabase := database.FDS.Database("FDS").Collection("file")
-    fileSize := len(data)
-    numberOfChunks := (fileSize + CHUNK_SIZE - 1) / CHUNK_SIZE
-    numberOfNodes := len(database.LiveNodes)
+	CoreDatabase := database.FDS.Database("FDS").Collection("file")
+	fileSize := len(data)
+	numberOfChunks := (fileSize + CHUNK_SIZE - 1) / CHUNK_SIZE
+	numberOfNodes := len(database.LiveNodes)
 
-    if numberOfNodes == 0 {
-        return fmt.Errorf("no nodes available")
-    }
+	if numberOfNodes == 0 {
+		return fmt.Errorf("no nodes available")
+	}
 
-    // Create file metadata
-    newFile := models.File{
-        FileName:       getUniqueFileName(CoreDatabase, fileName, parentFolderId),
-        FileType:       filepath.Ext(fileName),
-        UserID:        userId,
-        FileSize:      int64(fileSize),
-        UploadTime:    time.Now(),
-        ParentFolderID: parentFolderId,
-        ChunkLocations: make([]models.ChunkLocation, numberOfChunks),
-    }
+	// Create file metadata
+	newFile := models.File{
+		FileName:       getUniqueFileName(CoreDatabase, fileName, parentFolderId),
+		FileType:       filepath.Ext(fileName),
+		UserID:         userId,
+		FileSize:       int64(fileSize),
+		UploadTime:     time.Now(),
+		ParentFolderID: parentFolderId,
+		ChunkLocations: make([]models.ChunkLocation, numberOfChunks),
+	}
 
-    // Save metadata first
-    result, err := CoreDatabase.InsertOne(context.Background(), newFile)
-    if err != nil {
-        return fmt.Errorf("failed to create file metadata: %v", err)
-    }
+	// Save metadata first
+	result, err := CoreDatabase.InsertOne(context.Background(), newFile)
+	if err != nil {
+		return fmt.Errorf("failed to create file metadata: %v", err)
+	}
 
-    fileID := result.InsertedID.(primitive.ObjectID).Hex()
+	fileID := result.InsertedID.(primitive.ObjectID).Hex()
 
-    // Setup channels
-    tasks := make(chan models.ChunkLocation, numberOfChunks)
-    results := make(chan error, numberOfChunks)
-    const workers = 5
+	// Setup channels
+	tasks := make(chan models.ChunkLocation, numberOfChunks)
+	results := make(chan error, numberOfChunks)
+	const workers = 5
 
-    // Start worker pool
-    var wg sync.WaitGroup
-    for i := 0; i < workers; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            for task := range tasks {
-                start := task.ChunkIndex * CHUNK_SIZE
-                end := start + CHUNK_SIZE
-                if end > fileSize {
-                    end = fileSize
-                }
+	// Start worker pool
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for task := range tasks {
+				start := task.ChunkIndex * CHUNK_SIZE
+				end := start + CHUNK_SIZE
+				if end > fileSize {
+					end = fileSize
+				}
 
-                chunk := models.Chunk{
-                    FileID:     fileID,
-                    FileName:   newFile.FileName,
-                    ChunkIndex: task.ChunkIndex,
-                    Data:       data[start:end],
-                    UploadTime: time.Now(),
-                }
+				chunk := models.Chunk{
+					FileID:     fileID,
+					FileName:   newFile.FileName,
+					ChunkIndex: task.ChunkIndex,
+					Data:       data[start:end],
+					UploadTime: time.Now(),
+				}
 
-                nodeClient := database.LiveNodes[task.NodeIndex]
-                _, err := nodeClient.Database("Data").Collection("chunks").InsertOne(
-                    context.Background(),
-                    chunk,
-                )
-                results <- err
-            }
-        }()
-    }
+				nodeClient := database.LiveNodes[task.NodeIndex]
+				_, err := nodeClient.Database("Data").Collection("chunks").InsertOne(
+					context.Background(),
+					chunk,
+				)
+				results <- err
+			}
+		}()
+	}
 
-    // Distribute chunks
-    go func() {
-        for i := 0; i < numberOfChunks; i++ {
-            loc := models.ChunkLocation{
-                ChunkIndex: i,
-                NodeIndex:  i % numberOfNodes,
-            }
-            newFile.ChunkLocations[i] = loc
-            tasks <- loc
-        }
-        close(tasks)
-    }()
+	// Distribute chunks
+	go func() {
+		for i := 0; i < numberOfChunks; i++ {
+			loc := models.ChunkLocation{
+				ChunkIndex: i,
+				NodeIndex:  i % numberOfNodes,
+			}
+			newFile.ChunkLocations[i] = loc
+			tasks <- loc
+		}
+		close(tasks)
+	}()
 
-    // Wait and check errors
-    go func() {
-        wg.Wait()
-        close(results)
-    }()
+	// Wait and check errors
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-    for err := range results {
-        if err != nil {
-            // Rollback on error
-            deleteUploadedChunks(fileID, numberOfChunks)
-            CoreDatabase.DeleteOne(context.Background(), bson.M{"_id": result.InsertedID})
-            return fmt.Errorf("chunk upload failed: %v", err)
-        }
-    }
+	for err := range results {
+		if err != nil {
+			// Rollback on error
+			deleteUploadedChunks(fileID, numberOfChunks)
+			CoreDatabase.DeleteOne(context.Background(), bson.M{"_id": result.InsertedID})
+			return fmt.Errorf("chunk upload failed: %v", err)
+		}
+	}
 
-    // Update metadata with chunk locations
-    _, err = CoreDatabase.UpdateOne(
-        context.Background(),
-        bson.M{"_id": result.InsertedID},
-        bson.M{"$set": bson.M{
-            "file_id": fileID,
-            "chunk_locations": newFile.ChunkLocations,
-        }},
-    )
-    
-    if err != nil {
-        return fmt.Errorf("failed to update chunk locations: %v", err)
-    }
+	// Update metadata with chunk locations
+	_, err = CoreDatabase.UpdateOne(
+		context.Background(),
+		bson.M{"_id": result.InsertedID},
+		bson.M{"$set": bson.M{
+			"file_id":         fileID,
+			"chunk_locations": newFile.ChunkLocations,
+		}},
+	)
 
-    // Update parent folder
-    if err := updateParentFolderFiles(fileID, parentFolderId, true); err != nil {
-        return fmt.Errorf("failed to update parent folder: %v", err)
-    }
+	if err != nil {
+		return fmt.Errorf("failed to update chunk locations: %v", err)
+	}
 
-    return nil
+	// Update parent folder
+	if err := updateParentFolderFiles(fileID, parentFolderId, true); err != nil {
+		return fmt.Errorf("failed to update parent folder: %v", err)
+	}
+
+	return nil
 }
 
 func DownloadFile(fileID string) error {
@@ -343,89 +342,89 @@ func DownloadFile(fileID string) error {
 }
 
 func DownloadFileParallel(fileID string) error {
-    // Get file metadata
-    var fileMetadata models.File
-    err := database.FDS.Database("FDS").Collection("file").
-        FindOne(context.Background(), bson.M{"file_id": fileID}).
-        Decode(&fileMetadata)
-    
-    if err != nil {
-        return fmt.Errorf("file not found: %v", err)
-    }
+	// Get file metadata
+	var fileMetadata models.File
+	err := database.FDS.Database("FDS").Collection("file").
+		FindOne(context.Background(), bson.M{"file_id": fileID}).
+		Decode(&fileMetadata)
 
-    // Create download directory if not exists
-    downloadsPath := filepath.Join(os.Getenv("USERPROFILE"), "Downloads")
-    localFilePath := filepath.Join(downloadsPath, fileMetadata.FileName)
-    
-    file, err := os.Create(localFilePath)
-    if err != nil {
-        return fmt.Errorf("failed to create local file: %v", err)
-    }
-    defer file.Close()
+	if err != nil {
+		return fmt.Errorf("file not found: %v", err)
+	}
 
-    // Setup concurrent download
-    workers := 5
-    tasks := make(chan models.ChunkLocation, len(fileMetadata.ChunkLocations))
-    results := make(chan struct {
-        index int
-        data  []byte
-        err   error
-    }, len(fileMetadata.ChunkLocations))
+	// Create download directory if not exists
+	downloadsPath := filepath.Join(os.Getenv("USERPROFILE"), "Downloads")
+	localFilePath := filepath.Join(downloadsPath, fileMetadata.FileName)
 
-    // Start worker pool
-    var wg sync.WaitGroup
-    for i := 0; i < workers; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            for loc := range tasks {
-                var chunk models.Chunk
-                err := database.LiveNodes[loc.NodeIndex].Database("Data").Collection("chunks").
-                    FindOne(context.Background(), bson.M{
-                        "file_id": fileID,
-                        "chunk_index": loc.ChunkIndex,
-                    }).Decode(&chunk)
+	file, err := os.Create(localFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create local file: %v", err)
+	}
+	defer file.Close()
 
-                results <- struct {
-                    index int
-                    data  []byte
-                    err   error
-                }{loc.ChunkIndex, chunk.Data, err}
-            }
-        }()
-    }
+	// Setup concurrent download
+	workers := 5
+	tasks := make(chan models.ChunkLocation, len(fileMetadata.ChunkLocations))
+	results := make(chan struct {
+		index int
+		data  []byte
+		err   error
+	}, len(fileMetadata.ChunkLocations))
 
-    // Send download tasks
-    go func() {
-        for _, loc := range fileMetadata.ChunkLocations {
-            tasks <- loc
-        }
-        close(tasks)
-    }()
+	// Start worker pool
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for loc := range tasks {
+				var chunk models.Chunk
+				err := database.LiveNodes[loc.NodeIndex].Database("Data").Collection("chunks").
+					FindOne(context.Background(), bson.M{
+						"file_id":     fileID,
+						"chunk_index": loc.ChunkIndex,
+					}).Decode(&chunk)
 
-    // Collect and write chunks in order
-    chunks := make([][]byte, len(fileMetadata.ChunkLocations))
-    go func() {
-        wg.Wait()
-        close(results)
-    }()
+				results <- struct {
+					index int
+					data  []byte
+					err   error
+				}{loc.ChunkIndex, chunk.Data, err}
+			}
+		}()
+	}
 
-    for range fileMetadata.ChunkLocations {
-        result := <-results
-        if result.err != nil {
-            return fmt.Errorf("failed to download chunk %d: %v", result.index, result.err)
-        }
-        chunks[result.index] = result.data
-    }
+	// Send download tasks
+	go func() {
+		for _, loc := range fileMetadata.ChunkLocations {
+			tasks <- loc
+		}
+		close(tasks)
+	}()
 
-    // Write chunks sequentially
-    for _, chunk := range chunks {
-        if _, err := file.Write(chunk); err != nil {
-            return fmt.Errorf("failed to write chunk to file: %v", err)
-        }
-    }
+	// Collect and write chunks in order
+	chunks := make([][]byte, len(fileMetadata.ChunkLocations))
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-    return nil
+	for range fileMetadata.ChunkLocations {
+		result := <-results
+		if result.err != nil {
+			return fmt.Errorf("failed to download chunk %d: %v", result.index, result.err)
+		}
+		chunks[result.index] = result.data
+	}
+
+	// Write chunks sequentially
+	for _, chunk := range chunks {
+		if _, err := file.Write(chunk); err != nil {
+			return fmt.Errorf("failed to write chunk to file: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func deleteUploadedChunks(fileID string, untilIndex int) {
@@ -532,7 +531,7 @@ func GetAllFilesByUserID(userID string) ([]bson.M, error) {
 
 	// Lọc các file có user_id khớp với userID và is_moved_to_trash == false
 	filter := bson.M{
-		"user_id":            userID,
+		"user_id":           userID,
 		"is_moved_to_trash": false,
 	}
 
@@ -550,7 +549,6 @@ func GetAllFilesByUserID(userID string) ([]bson.M, error) {
 
 	return files, nil
 }
-
 
 func GetFileByID(fileID, userID string) (bson.M, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("file")
@@ -669,4 +667,60 @@ func LoadFileInTrash(userID string) ([]bson.M, error) {
 	}
 
 	return files, nil
+}
+
+func ShareFile(fileID string, emails []string) error {
+	// Add debug logging
+	fmt.Printf("Sharing file %s with emails: %v\n", fileID, emails)
+
+	filter := bson.M{"file_id": fileID}
+	update := bson.M{
+		"$addToSet": bson.M{
+			"shared_users": bson.M{
+				"$each": emails,
+			},
+		},
+	}
+
+	// Debug print update operation
+	fmt.Printf("Update operation: %+v\n", update)
+
+	result, err := database.FDS.Database("FDS").Collection("file").UpdateOne(
+		context.Background(),
+		filter,
+		update,
+	)
+
+	// Debug print result
+	fmt.Printf("Update result: %+v\n", result)
+
+	if err != nil {
+		return fmt.Errorf("failed to share file: %w", err)
+	}
+
+	// Verify update
+	var file models.File
+	err = database.FDS.Database("FDS").Collection("file").FindOne(
+		context.Background(),
+		filter,
+	).Decode(&file)
+
+	if err != nil {
+		return fmt.Errorf("failed to verify update: %w", err)
+	}
+
+	fmt.Printf("Updated file shared_users: %v\n", file.SharedUsers)
+
+	return nil
+}
+
+func GetSharedFiles(email string) ([]bson.M, error) {
+	filter := bson.M{"shared_users": email}
+	cursor, err := database.FDS.Database("FDS").Collection("file").Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	var results []bson.M
+	err = cursor.All(context.Background(), &results)
+	return results, err
 }

@@ -14,6 +14,7 @@ import BasePage from "./pages/base/BasePage.jsx";
 import MyDrive from "./pages/MyDrive.jsx";
 import Starred from "./pages/Starred.jsx";
 import Trash from "./pages/Trash.jsx";
+import SharedWithMe from "./pages/SharedWithMe.jsx";
 
 const router = createBrowserRouter(
   [
@@ -55,6 +56,10 @@ const router = createBrowserRouter(
             {
               path: 'trash',
               element: <Trash />
+            },
+            {
+              path: 'shared-with-me',
+              element: <SharedWithMe />
             },
           ]
         }

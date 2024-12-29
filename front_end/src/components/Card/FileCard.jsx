@@ -11,12 +11,13 @@ import {
 import { FaFilePdf } from "react-icons/fa6";
 import { LuFileText } from "react-icons/lu";
 import { BsFiletypeExe } from "react-icons/bs";
-import { Download, Trash2, Edit } from "lucide-react";
+import { Download, Trash2, Edit, Share } from "lucide-react";
 import { ContextMenu, MenuItem } from "../context/ContextMenu";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { dfsApi } from "../../api/dfsApi";
 import ProgressBar from "../ProgressBar";
+import ShareModal from "../ShareModal";
 
 const getFileIconAndStyle = (fileName) => {
   const extension = fileName.split(".").pop().toLowerCase();
@@ -64,10 +65,12 @@ const FileCard = ({
   onContextMenu,
   activeContextMenu,
   setActiveContextMenu,
-  onUpdate
+  onUpdate,
+  isSharedView
 }) => {
   const { icon: IconComponent, style } = getFileIconAndStyle(file.file_name);
   const [progress, setProgress] = useState([]);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const handleContextMenu = (e) => {
     e.preventDefault();
@@ -157,6 +160,20 @@ const FileCard = ({
       toast.error("Failed to add to starred");
     }
   };
+
+  const onClickShare = () => {
+    setShowShareModal(true);
+  };
+
+  const handleShare = async (emails) => {
+    try {
+      await dfsApi.shareFile(file.file_id, emails);
+      toast.success("File shared successfully");
+    } catch (error) {
+      toast.error("Failed to share file");
+    }
+  };
+
   return (
     <>
       <div
@@ -177,24 +194,32 @@ const FileCard = ({
       {activeContextMenu?.item?.type === "file" &&
         activeContextMenu?.item?.data?.file_id === file.file_id && (
           <ContextMenu
-            x={activeContextMenu.x}
-            y={activeContextMenu.y}
-            onClose={() => setActiveContextMenu(null)}
-          >
-            <MenuItem
-              icon={Download}
-              label="Download"
-              onClick={handleDownload}
-            />
-            <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
-            <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
-            <MenuItem icon={StarIcon} label="Add to starred" onClick={handleAddToStarred} />
-
-          </ContextMenu>
+          x={activeContextMenu.x}
+          y={activeContextMenu.y}
+          onClose={() => setActiveContextMenu(null)}
+        >
+          {isSharedView ? (
+            <MenuItem icon={Download} label="Download" onClick={handleDownload} />
+          ) : (
+            // Original menu items for non-shared view
+            <>
+              <MenuItem icon={Download} label="Download" onClick={handleDownload} />
+              <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
+              <MenuItem icon={Share} label="Share" onClick={onClickShare} />
+              <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
+              <MenuItem icon={StarIcon} label="Add to starred" onClick={handleAddToStarred} />
+            </>
+          )}
+        </ContextMenu>
         )}
       {progress.length > 0 && (
         <ProgressBar progresses={progress} onCancel={handleCancelDownload} />
       )}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        onShare={handleShare}
+      />
     </>
   );
 };

@@ -184,4 +184,79 @@ func GetDirectoryByIDHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func ShareFolderHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+
+    // Check method
+    if r.Method != http.MethodPost {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+        return
+    }
+
+    // Parse request body
+    var req struct {
+		FolderID string   `json:"folder_id"`
+        Emails []string `json:"emails"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+	if req.FolderID == "" {
+        http.Error(w, "folder_id is required", http.StatusBadRequest)
+        return
+    }
+
+    // Validate emails
+    if len(req.Emails) == 0 {
+        http.Error(w, "emails are required", http.StatusBadRequest)
+        return
+    }
+
+    // Share folder
+    if err := services.ShareDirectory(req.FolderID, req.Emails); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Return success
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(models.ApiResponse{
+        Success: true,
+        Message: "Folder shared successfully",
+    })
+}
+
+func GetSharedFoldersHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+    // Check method
+    if r.Method != http.MethodGet {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+        return
+    }
+
+	//Get user email by token
+	user, err := services.GetUserDataByToken(r.Header.Get("Authorization"))
+	if err != nil {
+		http.Error(w, "Invalid or missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get shared files
+	sharedFolders, err := services.GetSharedDirectories(*user.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+
+    // Return success
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(models.ApiResponse{
+        Success: true,
+        Data:    sharedFolders,
+    })
+}
 

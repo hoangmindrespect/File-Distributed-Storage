@@ -100,3 +100,21 @@ func GetUserByToken(token string) (string, error) {
 
     return userID, nil
 }
+
+func GetUserDataByToken(token string) (models.User, error) {
+    // Xác thực token và lấy user_id
+    userID, err := helper.ValidateJWT(token)
+    if err != nil {
+        return models.User{}, errors.New("invalid token")
+    }
+
+    // Lấy user theo user_id từ database
+    collection := database.FDS.Database("FDS").Collection("user")
+    var user models.User
+    err = collection.FindOne(context.TODO(), bson.M{"user_id": userID}).Decode(&user)
+    if err != nil {
+        return models.User{}, errors.New("user not found")
+    }
+
+    return user, nil
+}

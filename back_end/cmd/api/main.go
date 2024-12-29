@@ -85,6 +85,8 @@ func defineRoutes() []Route {
 		{"/file/move_to_trash", controller.MoveToTrashHandler},
 		{"/file/restore", controller.RestoreHandler},
 		{"/file/load_trash", controller.LoadFileInTrashHandler},
+		{"/file/share", controller.ShareFileHandler},
+		{"/file/get_shared_files", controller.GetSharedFilesHandler},
 
 		// Directory routes
 		{"/directory/create", controller.CreateDirectoryHandler},
@@ -93,6 +95,8 @@ func defineRoutes() []Route {
 		{"/directory/delete", controller.DeleteDirectoryHandler},
 		{"/directory/get_all_directories", controller.GetAllDirectoriesByUserIDHandler},
 		{"/directory/get_directory_by_id", controller.GetDirectoryByIDHandler},
+		{"/directory/share", controller.ShareFolderHandler},
+		{"/directory/get_shared_directories", controller.GetSharedFoldersHandler},
 	}
 }
 

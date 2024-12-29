@@ -36,7 +36,7 @@ export const sidebarMock = [
       },
       {
         icon: Users,
-        href: "/#",
+        href: "/shared-with-me",
         title: 'Shared with me',
       },
       // {

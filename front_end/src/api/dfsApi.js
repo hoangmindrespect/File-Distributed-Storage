@@ -21,6 +21,10 @@ export const dfsApi = {
   moveToTrash,
   restore,
   loadTrash,
+  shareFile,
+  shareFolder,
+  getSharedFiles,
+  getSharedFolders,
 }
 
 function login(user) {
@@ -209,6 +213,50 @@ function deleteFolder(folderId){
     params: {
       folder_id: folderId,
     },
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
+function shareFile(fileId, emails) {
+  return instance.post(`/file/share`,
+    {
+      file_id: fileId,
+      emails: emails,
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function shareFolder(folderId, emails) {
+  return instance.post(`/directory/share`,
+    {
+      folder_id: folderId,
+      emails: emails,
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function getSharedFiles() {
+  return instance.get(`/file/get_shared_files`, {
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
+function getSharedFolders() {
+  return instance.get(`/directory/get_shared_directories`, {
     headers: {
       Authorization: bearerAuth(localStorage.getItem("token")),
     },
