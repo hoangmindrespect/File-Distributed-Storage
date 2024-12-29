@@ -44,6 +44,10 @@ const router = createBrowserRouter(
               element: <MyDrive />
             },
             {
+              path: 'my-drive/:folder_id',
+              element: <MyDrive />
+            },
+            {
               path: 'starred',
               element: <Starred />
             },

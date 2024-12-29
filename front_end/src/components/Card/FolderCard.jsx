@@ -68,8 +68,8 @@ const FolderCard = ({ folder, onDoubleClick, onContextMenu, activeContextMenu, s
           y={activeContextMenu.y}
           onClose={() => setActiveContextMenu(null)}
         >
-          <MenuItem icon={Trash2} label="Delete" onClick={handleDelete} />
           <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
+          <MenuItem icon={Trash2} label="Delete" onClick={handleDelete} />
         </ContextMenu>
       )}
       {showDeleteDialog && (

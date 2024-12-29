@@ -33,6 +33,7 @@ const getFileIconAndStyle = (fileName) => {
     jpg: { icon: FileImage, style: "text-green-500" },
     jpeg: { icon: FileImage, style: "text-green-500" },
     gif: { icon: FileImage, style: "text-green-500" },
+    jfif: { icon: FileImage, style: "text-green-500" },
 
     // Video
     mp4: { icon: FileVideo, style: "text-purple-500" },
@@ -185,8 +186,8 @@ const FileCard = ({
               label="Download"
               onClick={handleDownload}
             />
-            <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
             <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
+            <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
             <MenuItem icon={StarIcon} label="Add to starred" onClick={handleAddToStarred} />
 
           </ContextMenu>
