@@ -92,17 +92,18 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 	CoreDatabase := database.FDS.Database("FDS").Collection("file")
 	userId, _ := GetUserByToken(Token)
 
-	newFile := models.File{
-		FileName:       getUniqueFileName(CoreDatabase, fileName, parentFolderId),
-		FileType:       filepath.Ext(fileName),
-		UserID:         userId,
-		FileSize:       int64(fileSize),
-		UploadTime:     time.Now(),
-		ParentFolderID: parentFolderId,
-		IsStarred:      false,
-		IsMovedToTrash: false,
-		ChunkLocations: make([]models.ChunkLocation, numberOfChunks),
-	}
+    newFile := models.File{
+        FileName:       getUniqueFileName(CoreDatabase, fileName, parentFolderId),
+        FileType:       filepath.Ext(fileName),
+        UserID:         userId,
+        SharedUsers:    make([]string, 0),  
+        FileSize:       int64(fileSize),
+        UploadTime:     time.Now(),
+        ParentFolderID: parentFolderId,
+        IsStarred:      false,
+        IsMovedToTrash: false,
+        ChunkLocations: make([]models.ChunkLocation, numberOfChunks),
+    }
 
 	result, err := CoreDatabase.InsertOne(context.Background(), newFile)
 	if err != nil {

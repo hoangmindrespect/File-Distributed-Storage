@@ -1,7 +1,7 @@
 import { Folder, Share } from "lucide-react";
 import { FaFolder } from "react-icons/fa";
 
-import { Trash2, Edit } from "lucide-react";
+import { Trash2, Edit, RotateCw } from "lucide-react";
 import { ContextMenu, MenuItem } from "../context/ContextMenu";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
@@ -15,6 +15,9 @@ const FolderCard = ({
   activeContextMenu,
   setActiveContextMenu,
   onUpdate,
+  isTrashView,
+  onRestore,        
+  onDeletePermanent
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -53,6 +56,16 @@ const FolderCard = ({
     }
   };
 
+  const handleMoveToTrash = async () => {
+    try {
+      await dfsApi.moveFolderToTrash(folder.folder_id);
+      toast.success("Folder was moved to trash successfully");
+      onUpdate();
+    } catch (error) {
+      toast.error("Failed to move folder to trash");
+    }
+  };
+
   const handleShare = async (emails) => {
     try {
       await dfsApi.shareFolder(folder.folder_id, emails);
@@ -81,14 +94,21 @@ const FolderCard = ({
       </div>
       {activeContextMenu?.item?.type === "folder" &&
         activeContextMenu?.item?.data?.folder_id === folder.folder_id && (
-          <ContextMenu
-            x={activeContextMenu.x}
-            y={activeContextMenu.y}
-            onClose={() => setActiveContextMenu(null)}
-          >
-            <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
-            {/* <MenuItem icon={Share} label="Share" onClick={() => setShowShareModal(true)}/> */}
-            <MenuItem icon={Trash2} label="Delete" onClick={handleDelete} />
+          <ContextMenu x={activeContextMenu.x} y={activeContextMenu.y}>
+            {isTrashView ? (
+              // Trash view menu items
+              <>
+                <MenuItem icon={RotateCw} label="Restore" onClick={() => onRestore(folder.folder_id)} />
+                <MenuItem icon={Trash2} label="Delete Permanently" onClick={() => onDeletePermanent(folder.folder_id)} />
+              </>
+            ) : (
+              // Regular view menu items
+              <>
+                <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
+                <MenuItem icon={Trash2} label="Move to trash" onClick={handleMoveToTrash} />
+                <MenuItem icon={Share} label="Share" onClick={() => setShowShareModal(true)}/>
+              </>
+            )}
           </ContextMenu>
         )}
       <ShareModal

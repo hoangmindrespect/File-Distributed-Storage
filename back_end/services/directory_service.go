@@ -170,10 +170,14 @@ func deleteDirectoryRecursive(folderID string) error {
 func GetAllDirectoriesByUserId(userID string) ([]bson.M, error) {
 	CoreDatabase := database.FDS.Database("FDS").Collection("directory")
 
-	// Lọc các thư mục có user_id khớp với userID
-	cursor, err := CoreDatabase.Find(context.Background(), bson.M{"user_id": userID})
+	// Lọc các thư mục có user_id khớp với userID và is_moved_to_trash == false
+    filter := bson.M{
+		"user_id":           userID,
+		"is_moved_to_trash": false,
+	}
+	cursor, err := CoreDatabase.Find(context.Background(), filter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch directories: %w", err)
+		return nil, fmt.Errorf("failed to retrieve files: %w", err)
 	}
 	defer cursor.Close(context.Background())
 
@@ -207,63 +211,112 @@ func GetDirectoryById(folderID, userID string) (bson.M, error) {
 	return directory , nil
 }
 
-func ShareDirectory(folderID string, emails []string) error {
-    // Share parent folder
-    filter := bson.M{"folder_id": folderID}
-    update := bson.M{
-        "$addToSet": bson.M{
-            "shared_users": bson.M{
-                "$each": emails,
-            },
-        },
-    }
+func MoveFolderToTrash(userID, folderID string) error {
+	filter := bson.M{"user_id": userID, "folder_id": folderID}
+	update := bson.M{"$set": bson.M{"is_moved_to_trash": true}}
+
+	result, err := database.FDS.Database("FDS").Collection("directory").UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to move to trash: %v", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("folder with ID %s not found for user %s", folderID, userID)
+	}
+
+	return nil
+}
+
+func RestoreFolder(userID, folderID string) error {
+	filter := bson.M{"user_id": userID, "folder_id": folderID}
+	update := bson.M{"$set": bson.M{"is_moved_to_trash": false}}
+
+	result, err := database.FDS.Database("FDS").Collection("directory").UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to restore folder: %v", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("folder with ID %s not found for user %s", folderID, userID)
+	}
+
+	return nil
+}
+
+func LoadFolderInTrash(userID string) ([]bson.M, error) {
+	filter := bson.M{"user_id": userID, "is_moved_to_trash": true}
+
+	cursor, err := database.FDS.Database("FDS").Collection("directory").Find(context.Background(), filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load folders in trash: %v", err)
+	}
+	defer cursor.Close(context.Background())
+
+	var folders []bson.M
+	if err := cursor.All(context.Background(), &folders); err != nil {
+		return nil, fmt.Errorf("failed to decode folders: %v", err)
+	}
+
+	return folders, nil
+}
+
+// func ShareDirectory(folderID string, emails []string) error {
+//     // Share parent folder
+//     filter := bson.M{"folder_id": folderID}
+//     update := bson.M{
+//         "$addToSet": bson.M{
+//             "shared_users": bson.M{
+//                 "$each": emails,
+//             },
+//         },
+//     }
     
-    _, err := database.FDS.Database("FDS").Collection("directory").UpdateOne(
-        context.Background(),
-        filter,
-        update,
-    )
-    if err != nil {
-        return fmt.Errorf("failed to share parent folder: %w", err)
-    }
+//     _, err := database.FDS.Database("FDS").Collection("directory").UpdateOne(
+//         context.Background(),
+//         filter,
+//         update,
+//     )
+//     if err != nil {
+//         return fmt.Errorf("failed to share parent folder: %w", err)
+//     }
 
-    // Get folder details
-    var folder models.Directory
-    err = database.FDS.Database("FDS").Collection("directory").FindOne(
-        context.Background(),
-        filter,
-    ).Decode(&folder)
-    if err != nil {
-        return fmt.Errorf("failed to get folder details: %w", err)
-    }
+//     // Get folder details
+//     var folder models.Directory
+//     err = database.FDS.Database("FDS").Collection("directory").FindOne(
+//         context.Background(),
+//         filter,
+//     ).Decode(&folder)
+//     if err != nil {
+//         return fmt.Errorf("failed to get folder details: %w", err)
+//     }
 
-    // Share child files
-    for _, fileID := range folder.ChildFileID {
-        err := ShareFile(fileID, emails)
-        if err != nil {
-            return fmt.Errorf("failed to share child file %s: %w", fileID, err)
-        }
-    }
+//     // Share child files
+//     for _, fileID := range folder.ChildFileID {
+//         err := ShareFile(fileID, emails)
+//         if err != nil {
+//             return fmt.Errorf("failed to share child file %s: %w", fileID, err)
+//         }
+//     }
 
-    // Recursively share child folders
-    for _, childFolderID := range folder.ChildFolderID {
-        err := ShareDirectory(childFolderID, emails)
-        if err != nil {
-            return fmt.Errorf("failed to share child folder %s: %w", childFolderID, err)
-        }
-    }
+//     // Recursively share child folders
+//     for _, childFolderID := range folder.ChildFolderID {
+//         err := ShareDirectory(childFolderID, emails)
+//         if err != nil {
+//             return fmt.Errorf("failed to share child folder %s: %w", childFolderID, err)
+//         }
+//     }
 
-    return nil
-}
+//     return nil
+// }
 
-func GetSharedDirectories(email string) ([]bson.M, error) {
-    filter := bson.M{"shared_users": email}
-    cursor, err := database.FDS.Database("FDS").Collection("directory").Find(context.Background(), filter)
-    if err != nil {
-        return nil, err
-    }
-    var results []bson.M
-    err = cursor.All(context.Background(), &results)
-    return results, err
-}
+// func GetSharedDirectories(email string) ([]bson.M, error) {
+//     filter := bson.M{"shared_users": email}
+//     cursor, err := database.FDS.Database("FDS").Collection("directory").Find(context.Background(), filter)
+//     if err != nil {
+//         return nil, err
+//     }
+//     var results []bson.M
+//     err = cursor.All(context.Background(), &results)
+//     return results, err
+// }
 

@@ -7,7 +7,7 @@ import { FolderOpen } from "lucide-react";
 import { useRefresh } from '../components/context/RefreshContext';
 
 const SharedWithMe = () => {
-  const [sharedFolders, setSharedFolders] = useState([]);
+  // const [sharedFolders, setSharedFolders] = useState([]);
   const [sharedFiles, setSharedFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeContextMenu, setActiveContextMenu] = useState(null);
@@ -19,12 +19,12 @@ const SharedWithMe = () => {
     const fetchSharedItems = async () => {
       try {
         setIsLoading(true);
-        const [foldersRes, filesRes] = await Promise.all([
-          dfsApi.getSharedFolders(),
+        const [filesRes] = await Promise.all([
+          // dfsApi.getSharedFolders(),
           dfsApi.getSharedFiles()
         ]);
         
-        setSharedFolders(foldersRes.data.data || []);
+        // setSharedFolders(foldersRes.data.data || []);
         setSharedFiles(filesRes.data.data || []);
       } catch (error) {
         console.error("Error loading shared items:", error);
@@ -44,9 +44,9 @@ const SharedWithMe = () => {
     });
   };
 
-  const handleFolderDoubleClick = (folderId) => {
-    navigate(`/my-drive/${folderId}`);
-  };
+  // const handleFolderDoubleClick = (folderId) => {
+  //   navigate(`/my-drive/${folderId}`);
+  // };
 
   const refreshData = () => {
     setSecondRefreshKey(prev => prev + 1);
@@ -74,11 +74,12 @@ const SharedWithMe = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Shared with me</h1>
       
-      {!sharedFolders.length && !sharedFiles.length ? (
+      {/* {!sharedFolders.length && !sharedFiles.length ? ( */}
+      {!sharedFiles.length ? (
         <EmptyShared />
       ) : (
         <div className="space-y-8">
-          {sharedFolders.length > 0 && (
+          {/* {sharedFolders.length > 0 && (
             <div>
               <h2 className="text-lg font-medium text-gray-700 mb-4">Folders</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -92,7 +93,7 @@ const SharedWithMe = () => {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
 
           {sharedFiles.length > 0 && (
             <div>

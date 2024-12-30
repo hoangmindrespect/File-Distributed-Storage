@@ -21,6 +21,9 @@ export const dfsApi = {
   moveToTrash,
   restore,
   loadTrash,
+  moveFolderToTrash,
+  restoreFolder,
+  loadTrashFolder,
   shareFile,
   shareFolder,
   getSharedFiles,
@@ -165,6 +168,45 @@ function restore(fileId) {
 
 function loadTrash(){
   return instance.get(`/file/load_trash`, {
+    params: {
+      user_id: localStorage.getItem("userId"),
+    },
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    },
+  });
+}
+
+function moveFolderToTrash(folderId) {
+  return instance.post(`/directory/move_to_trash`, 
+    {
+      folder_id: folderId,
+      user_id: localStorage.getItem("userId"),
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function restoreFolder(folderId) {
+  return instance.post(`/directory/restore`, 
+    {
+      folder_id: folderId,
+      user_id: localStorage.getItem("userId"),
+    },
+    {
+      headers: {
+        Authorization: bearerAuth(localStorage.getItem("token")),
+      },
+    }
+  );
+}
+
+function loadTrashFolder(){
+  return instance.get(`/directory/load_trash`, {
     params: {
       user_id: localStorage.getItem("userId"),
     },
