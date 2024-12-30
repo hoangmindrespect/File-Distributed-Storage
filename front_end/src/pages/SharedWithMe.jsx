@@ -9,7 +9,7 @@ import { useRefresh } from '../components/context/RefreshContext';
 const SharedWithMe = () => {
   // const [sharedFolders, setSharedFolders] = useState([]);
   const [sharedFiles, setSharedFiles] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [activeContextMenu, setActiveContextMenu] = useState(null);
   const navigate = useNavigate();
   const { refreshKey } = useRefresh();
@@ -18,7 +18,6 @@ const SharedWithMe = () => {
   useEffect(() => {
     const fetchSharedItems = async () => {
       try {
-        setIsLoading(true);
         const [filesRes] = await Promise.all([
           // dfsApi.getSharedFolders(),
           dfsApi.getSharedFiles()

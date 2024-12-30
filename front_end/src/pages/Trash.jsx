@@ -78,6 +78,10 @@ const Trash = () => {
     }
   };
 
+  const handleFolderDoubleClick = () => {
+    
+  };
+
   const EmptyTrash = () => (
     <div className="flex flex-col items-center justify-center h-[60vh] text-gray-500">
       <Trash2 size={64} className="mb-4 text-gray-400" />
@@ -110,6 +114,7 @@ const Trash = () => {
                 {trashedFolders.map((folder) => (
                   <FolderCard
                     key={folder.folder_id}
+                    onDoubleClick={handleFolderDoubleClick}
                     folder={folder}
                     onContextMenu={handleContextMenu}
                     activeContextMenu={activeContextMenu}

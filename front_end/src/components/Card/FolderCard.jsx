@@ -16,11 +16,12 @@ const FolderCard = ({
   setActiveContextMenu,
   onUpdate,
   isTrashView,
-  onRestore,        
-  onDeletePermanent
+  onRestore,
+  onDeletePermanent,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showOpenFolderDialog, setShowOpenFolderDialog] = useState(false);
 
   const handleContextMenu = (e) => {
     e.preventDefault();
@@ -33,7 +34,7 @@ const FolderCard = ({
 
   const confirmDelete = async () => {
     try {
-      await dfsApi.deleteFolder(folder.folder_id);
+      onDeletePermanent(folder.folder_id);
       toast.success("Folder deleted successfully");
       onUpdate();
     } catch (error) {
@@ -80,7 +81,13 @@ const FolderCard = ({
       <div
         onContextMenu={handleContextMenu}
         className="group cursor-pointer rounded-lg border border-blue-100 p-4 bg-gray-200 hover:bg-blue-100/50 hover:shadow-md transition-all"
-        onDoubleClick={() => onDoubleClick(folder.folder_id)}
+        onDoubleClick={
+          isTrashView
+            ? () => {
+                setShowOpenFolderDialog(true);
+              }
+            : () => onDoubleClick(folder.folder_id)
+        }
       >
         <div className="flex items-center gap-3">
           <FaFolder className="h-6 w-6 text-yellow-400" />
@@ -98,15 +105,27 @@ const FolderCard = ({
             {isTrashView ? (
               // Trash view menu items
               <>
-                <MenuItem icon={RotateCw} label="Restore" onClick={() => onRestore(folder.folder_id)} />
-                <MenuItem icon={Trash2} label="Delete Permanently" onClick={() => onDeletePermanent(folder.folder_id)} />
+                <MenuItem
+                  icon={RotateCw}
+                  label="Restore"
+                  onClick={() => onRestore(folder.folder_id)}
+                />
+                <MenuItem
+                  icon={Trash2}
+                  label="Delete Permanently"
+                  onClick={handleDelete}
+                />
               </>
             ) : (
               // Regular view menu items
               <>
                 <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
-                <MenuItem icon={Trash2} label="Move to trash" onClick={handleMoveToTrash} />
-                <MenuItem icon={Share} label="Share" onClick={() => setShowShareModal(true)}/>
+                <MenuItem
+                  icon={Trash2}
+                  label="Move to trash"
+                  onClick={handleMoveToTrash}
+                />
+                {/* <MenuItem icon={Share} label="Share" onClick={() => setShowShareModal(true)}/> */}
               </>
             )}
           </ContextMenu>
@@ -139,6 +158,32 @@ const FolderCard = ({
                 className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showOpenFolderDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-medium mb-4 text-yellow-600">
+              Folder Access Restricted
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {`Please restore "${folder.name}" to access its contents`}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowOpenFolderDialog(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onRestore(folder.folder_id)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Restore Folder
               </button>
             </div>
           </div>
