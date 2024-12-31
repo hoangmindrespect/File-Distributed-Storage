@@ -28,6 +28,7 @@ export const dfsApi = {
   shareFolder,
   getSharedFiles,
   getSharedFolders,
+  moveFile
 }
 
 function login(user) {
@@ -302,6 +303,17 @@ function getSharedFolders() {
     headers: {
       Authorization: bearerAuth(localStorage.getItem("token")),
     },
+  });
+}
+
+function moveFile(fileId, newParentId) {
+  return instance.post('/file/move', {
+    file_id: fileId,
+    new_parent_id: newParentId
+  }, {
+    headers: {
+      Authorization: bearerAuth(localStorage.getItem("token")),
+    }
   });
 }
 

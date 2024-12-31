@@ -87,6 +87,7 @@ func defineRoutes() []Route {
 		{"/file/load_trash", controller.LoadFileInTrashHandler},
 		{"/file/share", controller.ShareFileHandler},
 		{"/file/get_shared_files", controller.GetSharedFilesHandler},
+		{"/file/move", controller.MoveFileHandler},
 
 		// Directory routes
 		{"/directory/create", controller.CreateDirectoryHandler},

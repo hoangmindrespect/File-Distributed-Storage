@@ -726,3 +726,41 @@ func GetSharedFiles(email string) ([]bson.M, error) {
 	err = cursor.All(context.Background(), &results)
 	return results, err
 }
+
+func MoveFile(fileID string, newParentID string) error {
+    CoreDatabase := database.FDS.Database("FDS").Collection("file")
+    
+    // Get current file info
+    var file models.File
+    err := CoreDatabase.FindOne(
+        context.Background(),
+        bson.M{"file_id": fileID},
+    ).Decode(&file)
+    if err != nil {
+        return fmt.Errorf("file not found: %w", err)
+    }
+
+    // Remove from old parent
+    err = updateParentFolderFiles(fileID, file.ParentFolderID, false)
+    if err != nil {
+        return fmt.Errorf("failed to update old parent: %w", err)
+    }
+
+    // Update file's parent
+    _, err = CoreDatabase.UpdateOne(
+        context.Background(),
+        bson.M{"file_id": fileID},
+        bson.M{"$set": bson.M{"parent_folder_id": newParentID}},
+    )
+    if err != nil {
+        return fmt.Errorf("failed to update file parent: %w", err) 
+    }
+
+    // Add to new parent
+    err = updateParentFolderFiles(fileID, newParentID, true)
+    if err != nil {
+        return fmt.Errorf("failed to update new parent: %w", err)
+    }
+
+    return nil
+}

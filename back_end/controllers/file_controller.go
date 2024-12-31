@@ -463,3 +463,29 @@ func GetSharedFilesHandler(w http.ResponseWriter, r *http.Request) {
 		Data:    sharedFiles,
 	})
 }
+
+func MoveFileHandler(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req struct {
+        FileID string `json:"file_id"`
+        NewParentID string `json:"new_parent_id"` 
+    }
+
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    if err := services.MoveFile(req.FileID, req.NewParentID); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    json.NewEncoder(w).Encode(map[string]string{
+        "message": "File moved successfully",
+    })
+}

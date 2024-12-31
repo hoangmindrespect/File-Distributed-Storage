@@ -11,7 +11,7 @@ import {
 import { FaFilePdf } from "react-icons/fa6";
 import { LuFileText } from "react-icons/lu";
 import { BsFiletypeExe } from "react-icons/bs";
-import { Download, Trash2, Edit, Share, RotateCw} from "lucide-react";
+import { Download, Trash2, Edit, Share, RotateCw, Scissors} from "lucide-react";
 import { ContextMenu, MenuItem } from "../context/ContextMenu";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
@@ -69,7 +69,8 @@ const FileCard = ({
   isSharedView,
   isTrashView,
   onRestore,         // Add these new props
-  onDeletePermanent
+  onDeletePermanent,
+  setClipboard
 }) => {
   const { icon: IconComponent, style } = getFileIconAndStyle(file.file_name);
   const [progress, setProgress] = useState([]);
@@ -128,6 +129,15 @@ const FileCard = ({
       );
       toast.error("Failed to download file");
     }
+  };
+
+  const handleCut = () => {
+    setClipboard({
+      type: 'file',
+      id: file.file_id,
+      operation: 'cut'
+    });
+    toast.success('File ready to move');
   };
 
   const handleDelete = async () => {
@@ -211,6 +221,7 @@ const FileCard = ({
               <>
                 <MenuItem icon={Download} label="Download" onClick={handleDownload} />
                 <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
+                <MenuItem icon={Scissors} label="Cut" onClick={handleCut} />
                 <MenuItem icon={Share} label="Share" onClick={onClickShare} />
                 <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
                 <MenuItem icon={StarIcon} label="Add to starred" onClick={handleAddToStarred} />
