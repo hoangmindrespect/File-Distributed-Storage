@@ -68,7 +68,7 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Upload file
-	err = services.UploadFileParallel(file, handler.Filename, parentFolderId)
+	err = services.UploadFileConcurrency(file, handler.Filename, parentFolderId)
 	if err != nil {
 		json.NewEncoder(w).Encode(models.ApiResponse{
 			Success: false,
@@ -487,5 +487,37 @@ func MoveFileHandler(w http.ResponseWriter, r *http.Request) {
 
     json.NewEncoder(w).Encode(map[string]string{
         "message": "File moved successfully",
+    })
+}
+
+func SearchHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    
+    if r.Method != http.MethodGet {
+        http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+        return
+    }
+    
+    query := r.URL.Query().Get("q")
+    if query == "" {
+        http.Error(w, "Search query is required", http.StatusBadRequest)
+        return
+    }
+    
+    userID, err := services.GetUserByToken(r.Header.Get("Authorization"))
+    if err != nil {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+    
+    results, err := services.SearchItems(query, userID)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    
+    json.NewEncoder(w).Encode(models.ApiResponse{
+        Success: true,
+        Data: results,
     })
 }

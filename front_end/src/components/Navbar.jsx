@@ -55,7 +55,7 @@ const Navbar = () => {
           className="w-full p-2 pl-10 pr-12 border rounded-full bg-gray-100 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
         />
         <button
-          onClick={() => navigate(`/search?query=${searchQuery}`)}
+          onClick={() => navigate(`/search?q=${searchQuery}`)}
           className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-gray-300 hover:bg-gray-400"
         >
           <FaSearch className="text-white" />

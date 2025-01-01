@@ -101,6 +101,8 @@ func defineRoutes() []Route {
 		{"/directory/load_trash", controller.LoadFolderInTrashHandler},
 		// {"/directory/share", controller.ShareFolderHandler},
 		// {"/directory/get_shared_directories", controller.GetSharedFoldersHandler},
+
+		{"/search", controller.SearchHandler},
 	}
 }
 

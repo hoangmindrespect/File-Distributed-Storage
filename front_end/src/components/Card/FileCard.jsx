@@ -223,8 +223,8 @@ const FileCard = ({
                 <MenuItem icon={Edit} label="Rename" onClick={handleRename} />
                 <MenuItem icon={Scissors} label="Cut" onClick={handleCut} />
                 <MenuItem icon={Share} label="Share" onClick={onClickShare} />
-                <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
                 <MenuItem icon={StarIcon} label="Add to starred" onClick={handleAddToStarred} />
+                <MenuItem icon={Trash2} label="Move to trash" onClick={handleDelete} />
               </>
             )}
           </ContextMenu>

@@ -15,6 +15,7 @@ import MyDrive from "./pages/MyDrive.jsx";
 import Starred from "./pages/Starred.jsx";
 import Trash from "./pages/Trash.jsx";
 import SharedWithMe from "./pages/SharedWithMe.jsx";
+import SearchResults from "./pages/SearchResults.jsx";
 
 const router = createBrowserRouter(
   [
@@ -60,6 +61,10 @@ const router = createBrowserRouter(
             {
               path: 'shared-with-me',
               element: <SharedWithMe />
+            },
+            {
+              path: 'search',
+              element: <SearchResults />
             },
           ]
         }

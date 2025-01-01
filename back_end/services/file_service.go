@@ -170,7 +170,7 @@ func UploadFile(fileContent io.Reader, fileName string, parentFolderId string) e
 	return nil
 }
 
-func UploadFileParallel(fileContent io.Reader, fileName string, parentFolderId string) error {
+func UploadFileConcurrency(fileContent io.Reader, fileName string, parentFolderId string) error {
 	// Read file content
 	data, err := io.ReadAll(fileContent)
 	if err != nil {
@@ -763,4 +763,54 @@ func MoveFile(fileID string, newParentID string) error {
     }
 
     return nil
+}
+
+
+func SearchItems(query string, userID string) (map[string]interface{}, error) {
+    CoreDatabase := database.FDS.Database("FDS")
+    
+    // Create case-insensitive regex pattern
+    pattern := primitive.Regex{Pattern: query, Options: "i"}
+    
+    // Search files
+    fileFilter := bson.M{
+        "user_id": userID,
+        "is_moved_to_trash": false,
+        "$or": []bson.M{
+            {"file_name": pattern},
+            {"file_type": pattern},
+        },
+    }
+    
+    fileCursor, err := CoreDatabase.Collection("file").Find(context.Background(), fileFilter)
+    if err != nil {
+        return nil, err
+    }
+    
+    var files []bson.M
+    if err = fileCursor.All(context.Background(), &files); err != nil {
+        return nil, err
+    }
+    
+    // Search folders
+    folderFilter := bson.M{
+        "user_id": userID,
+        "is_moved_to_trash": false,
+        "name": pattern,
+    }
+    
+    folderCursor, err := CoreDatabase.Collection("directory").Find(context.Background(), folderFilter)
+    if err != nil {
+        return nil, err
+    }
+    
+    var folders []bson.M
+    if err = folderCursor.All(context.Background(), &folders); err != nil {
+        return nil, err
+    }
+    
+    return map[string]interface{}{
+        "files": files,
+        "folders": folders,
+    }, nil
 }

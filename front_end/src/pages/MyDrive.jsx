@@ -169,21 +169,21 @@ const MyDrive = () => {
           </div>
         ))}
       </div>
+      {/* Add paste button in empty folder view */}
+      {clipboard && (
+        <button
+          onClick={handlePaste}
+          className="flex items-center gap-2 px-4 py-2 my-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          <Clipboard className="h-4 w-4" />
+          Paste
+        </button>
+      )}
 
       {!childFolders.length && !childFiles.length ? (
         <EmptyFolder />
       ) : (
         <>
-          {/* Add paste button in empty folder view */}
-          {clipboard && (
-            <button
-              onClick={handlePaste}
-              className="flex items-center gap-2 px-4 py-2 my-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              <Clipboard className="h-4 w-4" />
-              Paste
-            </button>
-          )}
           {/* Folders Section */}
           {childFolders.length > 0 && (
             <div className="mb-8">
