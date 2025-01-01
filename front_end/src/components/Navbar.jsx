@@ -95,7 +95,7 @@ const Navbar = () => {
               <span className="sr-only">Open user menu</span>
               <img
                 className="w-8 h-8 rounded-full"
-                src="/avatar.png"
+                src="https://cdn-icons-png.flaticon.com/512/6858/6858504.png"
                 alt="user photo"
               />
             </button>

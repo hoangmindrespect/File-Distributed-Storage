@@ -18,6 +18,7 @@ import { toast } from "react-hot-toast";
 import { dfsApi } from "../../api/dfsApi";
 import ProgressBar from "../ProgressBar";
 import ShareModal from "../ShareModal";
+import { useProgress } from "../context/ProgressContext";
 
 const getFileIconAndStyle = (fileName) => {
   const extension = fileName.split(".").pop().toLowerCase();
@@ -39,6 +40,7 @@ const getFileIconAndStyle = (fileName) => {
     // Video
     mp4: { icon: FileVideo, style: "text-purple-500" },
     mov: { icon: FileVideo, style: "text-purple-500" },
+    MOV: { icon: FileVideo, style: "text-purple-500" },
     avi: { icon: FileVideo, style: "text-purple-500" },
 
     // Audio
@@ -74,6 +76,7 @@ const FileCard = ({
 }) => {
   const { icon: IconComponent, style } = getFileIconAndStyle(file.file_name);
   const [progress, setProgress] = useState([]);
+  const { addProgress, updateProgress, removeProgress } = useProgress();
   const [showShareModal, setShowShareModal] = useState(false);
 
   const handleContextMenu = (e) => {
@@ -86,47 +89,31 @@ const FileCard = ({
   };
 
   const handleDownload = async () => {
-    const newDownload = {
-      id: Math.random().toString(36),
+    const progressId = Math.random().toString(36);
+    
+    addProgress({
+      id: progressId,
       fileName: file.file_name,
       progressCount: 0,
-      status: "pending",
-    };
-    setProgress((prev) => [...prev, newDownload]);
-    // Start download
-    setProgress((prev) =>
-      prev.map((progress) =>
-        progress.fileName === file.file_name
-          ? { ...progress, status: "downloading", progressCount: 0 }
-          : progress
-      )
-    );
+      status: "downloading"
+    });
 
     try {
       const response = await dfsApi.downloadFile(file.file_id);
       if (response.status === 200) {
-        setProgress((prev) =>
-          prev.map((progress) =>
-            progress.fileName === file.file_name
-              ? { ...progress, progressCount: 100, status: "completed" }
-              : progress
-          )
-        );
-        toast.success(`File ${file.file_name} downloaded successfully`);
+        updateProgress(progressId, { 
+          progressCount: 100, 
+          status: "completed" 
+        });
+        
         setTimeout(() => {
-          setProgress((prev) =>
-            prev.filter((progress) => progress.fileName !== file.file_name)
-          );
+          removeProgress(progressId);
         }, 3000);
+        
+        toast.success(`File ${file.file_name} downloaded successfully`);
       }
     } catch (error) {
-      setProgress((prev) =>
-        prev.map((progress) =>
-          progress.fileName === file.file_name
-            ? { ...progress, status: "error" }
-            : progress
-        )
-      );
+      updateProgress(progressId, { status: "error" });
       toast.error("Failed to download file");
     }
   };

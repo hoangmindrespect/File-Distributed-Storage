@@ -144,14 +144,14 @@ const Login = () => {
                   </div>
                 </div>
 
-                <div className="text-sm text-end my-4">
+                {/* <div className="text-sm text-end my-4">
                   <a
                     href="/login/forgotpassword"
                     className="font-semibold text-black hover:text-gray-500"
                   >
                     Forgot password?
                   </a>
-                </div>
+                </div> */}
 
                 <button
                   type="submit"
